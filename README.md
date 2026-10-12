@@ -7,7 +7,7 @@ A restaurant website whose menu is loaded from a MySQL database by plain PHP. Vi
 **Team**
 
 | Student | Role | Owns |
-|---|---|---|
+| --- | --- | --- |
 | Sultan | Front-end | HTML templates, CSS, responsive design |
 | Michael | Back-end | PHP, database connection, menu output, reservation form |
 | Kevin | Database, content, DevOps | schema, seed data, written content, images, README |
@@ -103,7 +103,7 @@ then import both files again.
 php -S localhost:8000 -t public
 ```
 
-Open http://localhost:8000. Keep the terminal open while you work and stop the server with Ctrl+C.
+Open <http://localhost:8000>. Keep the terminal open while you work and stop the server with Ctrl+C.
 
 ---
 
@@ -116,10 +116,11 @@ Open http://localhost:8000. Keep the terminal open while you work and stop the s
    cd C:\xampp\htdocs
    git clone https://github.com/Quantamania/restaurant-menu.git
 ```
-1. Open http://localhost/phpmyadmin, click **New**, and create a database named `restaurant_menu` (collation `utf8mb4_general_ci`).
+
+1. Open <http://localhost/phpmyadmin>, click **New**, and create a database named `restaurant_menu` (collation `utf8mb4_general_ci`).
 2. Select that database, go to **Import**, and import `database/schema.sql`, then `database/seed.sql` (once only).
 3. Copy `src/config.sample.php` to `src/config.php`. The default values (`root` with an empty password) already match XAMPP, so no edits are needed.
-4. Open http://localhost/restaurant-menu/public/
+4. Open <http://localhost/restaurant-menu/public/>
 
 ---
 
@@ -140,7 +141,7 @@ mariadb -u menu_user -p restaurant_menu -e "SELECT * FROM reservations;"
 ## 6. Troubleshooting
 
 | Problem | Likely cause and fix |
-|---|---|
+| --- | --- |
 | "The menu is unavailable right now" | The PHP could not reach the database. Check the error in the terminal running `php -S`, and check `src/config.php`. |
 | `Access denied for user` | Wrong user or password in `src/config.php`. |
 | `Unknown database` | The database was not created, or `dbname` in `config.php` is different. |
@@ -180,10 +181,12 @@ restaurant-menu/
 ## 8. Team workflow
 
 - Never push straight to `main`. Everyone works on their own branch:
+
 ```bash
   git checkout main && git pull
   git checkout -b frontend/sultan      # or backend/michael, content/kevin
 ```
+
 - Commit small and often, with clear messages, for example `Add category headings to menu`. The commit history shows who did which part.
 - Push your branch and open a **pull request** on GitHub. A teammate reviews it before it is merged into `main`.
 - After a merge, everyone runs `git checkout main && git pull`.
