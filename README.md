@@ -33,7 +33,7 @@ php -m | grep -i pdo_mysql
 ## 2. Get the code
 
 ```bash
-git clone https://github.com/OWNER/restaurant-menu.git
+git clone https://github.com/Quantamania/restaurant-menu.git
 cd restaurant-menu
 ```
 
@@ -113,7 +113,7 @@ Open http://localhost:8000. Keep the terminal open while you work and stop the s
 2. Clone the repo into `C:\xampp\htdocs\`:
 ```
    cd C:\xampp\htdocs
-   git clone https://github.com/OWNER/restaurant-menu.git
+   git clone https://github.com/Quantamania/restaurant-menu.git
 ```
 3. Open http://localhost/phpmyadmin, click **New**, and create a database named `restaurant_menu` (collation `utf8mb4_general_ci`).
 4. Select that database, go to **Import**, and import `database/schema.sql`, then `database/seed.sql` (once only).
