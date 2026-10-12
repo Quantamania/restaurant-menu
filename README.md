@@ -111,14 +111,15 @@ Open http://localhost:8000. Keep the terminal open while you work and stop the s
 
 1. Install XAMPP and start **Apache** and **MySQL** in the XAMPP control panel.
 2. Clone the repo into `C:\xampp\htdocs\`:
+
 ```
    cd C:\xampp\htdocs
    git clone https://github.com/Quantamania/restaurant-menu.git
 ```
-3. Open http://localhost/phpmyadmin, click **New**, and create a database named `restaurant_menu` (collation `utf8mb4_general_ci`).
-4. Select that database, go to **Import**, and import `database/schema.sql`, then `database/seed.sql` (once only).
-5. Copy `src/config.sample.php` to `src/config.php`. The default values (`root` with an empty password) already match XAMPP, so no edits are needed.
-6. Open http://localhost/restaurant-menu/public/
+1. Open http://localhost/phpmyadmin, click **New**, and create a database named `restaurant_menu` (collation `utf8mb4_general_ci`).
+2. Select that database, go to **Import**, and import `database/schema.sql`, then `database/seed.sql` (once only).
+3. Copy `src/config.sample.php` to `src/config.php`. The default values (`root` with an empty password) already match XAMPP, so no edits are needed.
+4. Open http://localhost/restaurant-menu/public/
 
 ---
 
