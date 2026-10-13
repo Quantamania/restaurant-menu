@@ -70,56 +70,20 @@ unset($_SESSION['flash']);
 
 require __DIR__ . '/../src/includes/header.php';
 ?>
-<section class="reserve">
-  <h1 class="section-title">Reserve a table</h1>
+<!--
+  Frontend markup to be implemented.
 
-  <?php if ($flash): ?>
-    <p class="notice notice-success" role="status"><?= e($flash) ?></p>
-  <?php endif; ?>
-  <?php if (isset($errors['form'])): ?>
-    <p class="notice notice-error" role="alert"><?= e($errors['form']) ?></p>
-  <?php endif; ?>
+  Available to this template:
+    $site   - site settings array
+    $old    - submitted values to repopulate the form (name, email, phone,
+              reservation_date, party_size, message)
+    $errors - per-field error messages, keyed by field name; 'form' holds
+              form-level errors
+    $flash  - success message after a completed reservation, otherwise null
 
-  <form method="post" action="reserve.php" class="reserve-form" novalidate>
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-
-    <div class="field">
-      <label for="name">Name</label>
-      <input id="name" name="name" type="text" maxlength="100" required value="<?= e($old['name']) ?>">
-      <?php if (isset($errors['name'])): ?><span class="field-error"><?= e($errors['name']) ?></span><?php endif; ?>
-    </div>
-
-    <div class="field">
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" maxlength="150" required value="<?= e($old['email']) ?>">
-      <?php if (isset($errors['email'])): ?><span class="field-error"><?= e($errors['email']) ?></span><?php endif; ?>
-    </div>
-
-    <div class="field">
-      <label for="phone">Phone (optional)</label>
-      <input id="phone" name="phone" type="tel" maxlength="20" value="<?= e($old['phone']) ?>">
-      <?php if (isset($errors['phone'])): ?><span class="field-error"><?= e($errors['phone']) ?></span><?php endif; ?>
-    </div>
-
-    <div class="field">
-      <label for="reservation_date">Date</label>
-      <input id="reservation_date" name="reservation_date" type="date" min="<?= date('Y-m-d') ?>" required value="<?= e($old['reservation_date']) ?>">
-      <?php if (isset($errors['reservation_date'])): ?><span class="field-error"><?= e($errors['reservation_date']) ?></span><?php endif; ?>
-    </div>
-
-    <div class="field">
-      <label for="party_size">Number of guests</label>
-      <input id="party_size" name="party_size" type="number" min="1" max="20" required value="<?= e($old['party_size']) ?>">
-      <?php if (isset($errors['party_size'])): ?><span class="field-error"><?= e($errors['party_size']) ?></span><?php endif; ?>
-    </div>
-
-    <div class="field">
-      <label for="message">Message (optional)</label>
-      <textarea id="message" name="message" rows="4" maxlength="500"><?= e($old['message']) ?></textarea>
-      <?php if (isset($errors['message'])): ?><span class="field-error"><?= e($errors['message']) ?></span><?php endif; ?>
-    </div>
-
-    <button type="submit" class="button">Send reservation</button>
-  </form>
-</section>
+  The form must POST to reserve.php and include a hidden 'csrf' input set to
+  csrf_token(), or the submission is rejected. Escape all output with e().
+  A reference implementation of the previous design lives in
+  frontend-reference/public/reserve.php.
+-->
 <?php require __DIR__ . '/../src/includes/footer.php'; ?>

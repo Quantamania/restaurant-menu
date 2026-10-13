@@ -7,15 +7,5 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="site-header">
-  <nav class="site-nav" aria-label="Main">
-    <a class="brand" href="index.php"><?= e($site['name']) ?></a>
-    <ul class="nav-links">
-      <li><a href="index.php#menu">Menu</a></li>
-      <li><a href="index.php#about">About</a></li>
-      <li><a href="index.php#hours">Hours</a></li>
-      <li><a href="reserve.php">Reserve</a></li>
-    </ul>
-  </nav>
-</header>
+<!-- Site header and navigation to be implemented. Reference: frontend-reference/src/includes/header.php -->
 <main>

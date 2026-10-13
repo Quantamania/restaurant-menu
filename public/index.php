@@ -24,55 +24,15 @@ try {
 
 require __DIR__ . '/../src/includes/header.php';
 ?>
-<section class="hero">
-  <h1><?= e($site['name']) ?></h1>
-  <p class="tagline"><?= e($site['tagline']) ?></p>
-  <a class="button" href="reserve.php">Reserve a table</a>
-</section>
+<!--
+  Frontend markup to be implemented.
 
-<section id="menu" class="menu">
-  <h2 class="section-title">Our Menu</h2>
+  Available to this template:
+    $site       - site settings array (name, tagline, about, address, phone, email, hours)
+    $categories - menu items grouped by category name; each item has name, description, price
+    $error      - string message when the menu could not be loaded, otherwise null
 
-  <?php if ($error): ?>
-    <p class="menu-error"><?= e($error) ?></p>
-  <?php elseif (!$categories): ?>
-    <p class="menu-empty">No menu items yet.</p>
-  <?php endif; ?>
-
-  <?php foreach ($categories as $categoryName => $items): ?>
-    <section class="menu-category">
-      <h3 class="category-name"><?= e($categoryName) ?></h3>
-      <ul class="menu-items">
-        <?php foreach ($items as $item): ?>
-          <li class="menu-item">
-            <h4 class="item-name"><?= e($item['name']) ?></h4>
-            <p class="item-description"><?= e($item['description']) ?></p>
-            <span class="item-price">KSh <?= number_format((float) $item['price'], 0) ?></span>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    </section>
-  <?php endforeach; ?>
-</section>
-
-<section id="about" class="about">
-  <h2 class="section-title">About Us</h2>
-  <p><?= e($site['about']) ?></p>
-</section>
-
-<section id="hours" class="hours">
-  <h2 class="section-title">Hours &amp; Location</h2>
-  <table class="hours-table">
-    <tbody>
-      <?php foreach ($site['hours'] as $days => $time): ?>
-        <tr><th scope="row"><?= e($days) ?></th><td><?= e($time) ?></td></tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
-  <address>
-    <?= e($site['address']) ?><br>
-    <?= e($site['phone']) ?><br>
-    <?= e($site['email']) ?>
-  </address>
-</section>
+  Escape all output with e(). A reference implementation of the previous
+  design lives in frontend-reference/public/index.php.
+-->
 <?php require __DIR__ . '/../src/includes/footer.php'; ?>

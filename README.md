@@ -157,9 +157,9 @@ mariadb -u menu_user -p restaurant_menu -e "SELECT * FROM reservations;"
 ```
 restaurant-menu/
 ├── public/              # the website (document root)
-│   ├── index.php        # home page: hero, menu, about, hours
-│   ├── reserve.php      # reservation form and handler
-│   ├── css/style.css
+│   ├── index.php        # home page: loads menu data, markup to be built
+│   ├── reserve.php      # reservation validation and handler, markup to be built
+│   ├── css/style.css    # empty, to be built
 │   ├── js/
 │   └── images/
 ├── src/
@@ -169,6 +169,7 @@ restaurant-menu/
 │   ├── site.php         # page text, address, opening hours
 │   ├── config.sample.php  # copy to config.php (not committed)
 │   └── includes/        # header.php, footer.php
+├── frontend-reference/  # snapshot of the starter design, not used at runtime
 ├── database/
 │   ├── schema.sql       # tables
 │   └── seed.sql         # starting data
