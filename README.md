@@ -416,25 +416,54 @@ mysql -u root -p restaurant_menu -e "SELECT * FROM reservations;"
 
 ```
 restaurant-menu/
-├── public/              # the website (document root)
-│   ├── index.php        # home page: loads menu data, markup to be built
-│   ├── reserve.php      # reservation validation and handler, markup to be built
-│   ├── css/style.css    # empty, to be built
+├── public/                      # the website (document root)
+│   ├── index.php                # home page: loads menu data, markup to be built
+│   ├── reserve.php              # reservation validation and handler, markup to be built
+│   ├── css/
+│   │   └── style.css            # empty, to be built
 │   ├── js/
+│   │   └── .gitkeep             # placeholder so the empty folder survives a clone
 │   └── images/
+│       └── .gitkeep             # placeholder so the empty folder survives a clone
 ├── src/
-│   ├── bootstrap.php    # session, database, helpers, site content
-│   ├── db.php           # PDO connection
-│   ├── helpers.php      # e() escaping and CSRF helpers
-│   ├── site.php         # page text, address, opening hours
-│   ├── config.sample.php  # copy to config.php (not committed)
-│   └── includes/        # header.php, footer.php
-├── frontend-reference/  # snapshot of the starter design, not used at runtime
+│   ├── bootstrap.php            # session, database, helpers, site content
+│   ├── db.php                   # PDO connection
+│   ├── helpers.php              # e() escaping and CSRF helpers
+│   ├── site.php                 # page text, address, opening hours
+│   ├── config.sample.php        # copy to config.php (see 3.3 / 4.5)
+│   └── includes/
+│       ├── header.php           # opening HTML and nav, markup to be built
+│       └── footer.php           # closing HTML, markup to be built
+├── frontend-reference/          # snapshot of the starter design, NOT used at runtime
+│   ├── README.md                # what this folder is and how it maps to the live files
+│   ├── public/
+│   │   ├── index.php
+│   │   ├── reserve.php
+│   │   └── css/style.css
+│   └── src/includes/
+│       ├── header.php
+│       └── footer.php
 ├── database/
-│   ├── schema.sql       # tables
-│   └── seed.sql         # starting data
+│   ├── schema.sql               # tables
+│   └── seed.sql                 # starting data
 ├── .gitignore
 └── README.md
+```
+
+Two things are **not** in the list above because Git never stores them:
+
+- `src/config.php` — you create it during setup (3.3 on Linux, 4.5 on Windows).
+  It holds your database password and is listed in `.gitignore`, so it exists on
+  your machine but is never committed. Every teammate makes their own.
+- The `.gitkeep` files in `public/js/` and `public/images/` are placeholders.
+  Git tracks files, not folders, so a genuinely empty folder disappears when
+  someone clones the repo. Delete each `.gitkeep` once you add real files to
+  that folder.
+
+To verify your copy matches this list:
+
+```bash
+git ls-files
 ```
 
 ---
