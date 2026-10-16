@@ -1,0 +1,7 @@
+/*
+ * Home page only. Loaded when index.php sets $pageStyle = 'home'.
+ *
+ * Belongs here: .hero, .menu, .menu-category, .menu-item, .about, .hours.
+ *
+ * Markup: src/includes/partials/hero.php, menu-list.php, about.php, hours.php
+ */

@@ -2,6 +2,7 @@
 require __DIR__ . '/../src/bootstrap.php';
 
 $pageTitle  = 'Home';
+$pageStyle  = 'home';
 $categories = [];
 $error      = null;
 
@@ -23,16 +24,11 @@ try {
 }
 
 require __DIR__ . '/../src/includes/header.php';
-?>
-<!--
-  Frontend markup to be implemented.
 
-  Available to this template:
-    $site       - site settings array (name, tagline, about, address, phone, email, hours)
-    $categories - menu items grouped by category name; each item has name, description, price
-    $error      - string message when the menu could not be loaded, otherwise null
+// Home page sections, in the order they appear.
+require __DIR__ . '/../src/includes/partials/hero.php';
+require __DIR__ . '/../src/includes/partials/menu-list.php';
+require __DIR__ . '/../src/includes/partials/about.php';
+require __DIR__ . '/../src/includes/partials/hours.php';
 
-  Escape all output with e(). A reference implementation of the previous
-  design lives in frontend-reference/public/index.php.
--->
-<?php require __DIR__ . '/../src/includes/footer.php'; ?>
+require __DIR__ . '/../src/includes/footer.php';

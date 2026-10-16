@@ -1,0 +1,13 @@
+/*
+ * Base layer: the foundations every other file builds on.
+ *
+ * Belongs here: CSS custom properties (colours, fonts, spacing scale),
+ * a reset or normalise, box-sizing, default typography for headings,
+ * paragraphs, links and lists.
+ *
+ * Does NOT belong here: anything about a specific component or page.
+ */
+
+:root {
+  /* TODO: --color-*, --font-*, --space-* */
+}

@@ -1,5 +1,12 @@
 /*
- * Stylesheet to be implemented by the frontend team.
- * The previous starter design is kept for reference at
- * frontend-reference/public/css/style.css
+ * Main stylesheet. Loaded on every page by src/includes/header.php.
+ *
+ * This file only pulls in the shared layers, in order. Put your actual rules
+ * in the files below, not here.
+ *
+ * Page-specific styles (home.css, reserve.css) are NOT imported here — the
+ * header loads them per page via $pageStyle.
  */
+@import url("base.css");
+@import url("layout.css");
+@import url("components.css");

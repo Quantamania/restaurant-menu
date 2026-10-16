@@ -355,10 +355,10 @@ Then import `schema.sql` and `seed.sql` again, once each. (With XAMPP, drop the
 
 ## 5. Check that it works
 
-> **Expect a blank page right now.** The front-end markup has deliberately been
-> removed so it can be rebuilt from scratch — see `frontend-reference/` for the
-> old design. A white page is **not** a failed setup. Use the checks below to
-> confirm your database is wired up correctly.
+> **Expect an almost blank page right now.** The front-end has deliberately been
+> left unbuilt. Every section renders its heading and an empty placeholder marked
+> with a `TODO` comment, waiting to be filled in. A near-empty page is **not** a
+> failed setup. Use the checks below to confirm your database is wired up.
 
 **Check 1 — the page loads without a PHP error.** Open the site. You should get a
 blank page, *not* a 500 error and *not* a wall of PHP warnings. Right-click →
@@ -416,55 +416,82 @@ mysql -u root -p restaurant_menu -e "SELECT * FROM reservations;"
 
 ```
 restaurant-menu/
-├── public/                      # the website (document root)
-│   ├── index.php                # home page: loads menu data, markup to be built
-│   ├── reserve.php              # reservation validation and handler, markup to be built
+├── public/                  # the website (document root)
+│   ├── index.php            # home page: loads menu data, pulls in the home partials
+│   ├── reserve.php          # reservation: validation and insert, pulls in the form partial
 │   ├── css/
-│   │   └── style.css            # empty, to be built
+│   │   ├── style.css        # entry point; imports base, layout, components
+│   │   ├── base.css         # variables, reset, typography
+│   │   ├── layout.css       # header, nav, footer, containers, breakpoints
+│   │   ├── components.css   # buttons, cards, form fields, messages, tables
+│   │   ├── home.css         # home page only
+│   │   └── reserve.css      # reservation page only
 │   ├── js/
-│   │   └── .gitkeep             # placeholder so the empty folder survives a clone
-│   └── images/
-│       └── .gitkeep             # placeholder so the empty folder survives a clone
+│   │   ├── main.js          # shared: nav toggle, anchor scrolling
+│   │   └── reserve.js       # reservation form helpers
+│   └── images/              # menu and site photos
 ├── src/
-│   ├── bootstrap.php            # session, database, helpers, site content
-│   ├── db.php                   # PDO connection
-│   ├── helpers.php              # e() escaping and CSRF helpers
-│   ├── site.php                 # page text, address, opening hours
-│   ├── config.sample.php        # copy to config.php (see 3.3 / 4.5)
+│   ├── bootstrap.php        # session, database, helpers, site content
+│   ├── db.php               # PDO connection
+│   ├── helpers.php          # e() escaping and CSRF helpers
+│   ├── site.php             # page text, address, opening hours
+│   ├── config.sample.php    # copy to config.php (not committed)
 │   └── includes/
-│       ├── header.php           # opening HTML and nav, markup to be built
-│       └── footer.php           # closing HTML, markup to be built
-├── frontend-reference/          # snapshot of the starter design, NOT used at runtime
-│   ├── README.md                # what this folder is and how it maps to the live files
-│   ├── public/
-│   │   ├── index.php
-│   │   ├── reserve.php
-│   │   └── css/style.css
-│   └── src/includes/
-│       ├── header.php
-│       └── footer.php
+│       ├── header.php       # <head>, opens <body>, loads per-page CSS
+│       ├── nav.php          # site navigation
+│       ├── footer.php       # site footer, loads per-page JS
+│       └── partials/        # one file per page section
+│           ├── hero.php         # home: hero banner
+│           ├── menu-list.php    # home: menu by category
+│           ├── about.php        # home: about text
+│           ├── hours.php        # home: hours and location
+│           └── reservation-form.php   # reserve: the booking form
 ├── database/
-│   ├── schema.sql               # tables
-│   └── seed.sql                 # starting data
+│   ├── schema.sql           # tables
+│   └── seed.sql             # starting data
 ├── .gitignore
 └── README.md
 ```
 
-Two things are **not** in the list above because Git never stores them:
+### How the front-end is divided
 
-- `src/config.php` — you create it during setup (3.3 on Linux, 4.5 on Windows).
-  It holds your database password and is listed in `.gitignore`, so it exists on
-  your machine but is never committed. Every teammate makes their own.
-- The `.gitkeep` files in `public/js/` and `public/images/` are placeholders.
-  Git tracks files, not folders, so a genuinely empty folder disappears when
-  someone clones the repo. Delete each `.gitkeep` once you add real files to
-  that folder.
+**Pages are thin.** `index.php` and `reserve.php` handle data and validation,
+then include partials. They contain no markup of their own.
 
-To verify your copy matches this list:
+**One partial per page section.** Everything a visitor sees lives in
+`src/includes/partials/`. To build the menu, you open `menu-list.php` and
+nothing else. Two people can work on different sections without touching the
+same file. Every partial starts with a comment listing the variables available
+to it and what to build.
 
-```bash
-git ls-files
+**CSS is layered.** `style.css` imports `base` → `layout` → `components`, in
+that order, on every page. Page-only rules go in `home.css` or `reserve.css`,
+which load separately. A rule used on one page belongs in that page's file; a
+rule used on both belongs in `components.css`.
+
+**Per-page assets are opt-in.** A page sets `$pageStyle` or `$pageScript`
+before including the header:
+
+```php
+$pageTitle  = 'Reserve a table';
+$pageStyle  = 'reserve';   // loads public/css/reserve.css
+$pageScript = 'reserve';   // loads public/js/reserve.js
 ```
+
+`header.php` adds the stylesheet, `footer.php` adds the script. To add a page,
+create the PHP file, set those three variables, and add matching CSS/JS files.
+
+**JavaScript is an enhancement.** The site must work with JS off. Never rely on
+`reserve.js` for validation — `reserve.php` already validates on the server, and
+that is the check that counts.
+
+Two notes on what Git stores:
+
+- `src/config.php` holds your database password and is in `.gitignore`. You
+  create it during setup (3.3 on Linux, 4.5 on Windows); it is never committed.
+- `public/images/` is empty, and Git does not track empty folders, so it will
+  not appear in a fresh clone. Create it yourself, or it will appear as soon as
+  someone commits the first image.
 
 ---
 

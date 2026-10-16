@@ -1,0 +1,8 @@
+/*
+ * Reservation page only. Loaded when reserve.php sets $pageStyle = 'reserve'.
+ *
+ * Belongs here: .reservation, .reservation-form, and the error and success
+ * states specific to booking.
+ *
+ * Markup: src/includes/partials/reservation-form.php
+ */

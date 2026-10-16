@@ -1,0 +1,9 @@
+/*
+ * Component layer: reusable pieces, used on more than one page.
+ *
+ * Belongs here: buttons, cards, form fields, labels, validation and flash
+ * messages, tables, section titles.
+ *
+ * Keep these page-agnostic. If a rule only ever applies to one page, it goes
+ * in home.css or reserve.css instead.
+ */

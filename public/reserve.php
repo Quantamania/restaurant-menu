@@ -1,7 +1,9 @@
 <?php
 require __DIR__ . '/../src/bootstrap.php';
 
-$pageTitle = 'Reserve a table';
+$pageTitle  = 'Reserve a table';
+$pageStyle  = 'reserve';
+$pageScript = 'reserve';
 $errors    = [];
 $old       = ['name' => '', 'email' => '', 'phone' => '',
               'reservation_date' => '', 'party_size' => '', 'message' => ''];
@@ -69,21 +71,7 @@ $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
 require __DIR__ . '/../src/includes/header.php';
-?>
-<!--
-  Frontend markup to be implemented.
 
-  Available to this template:
-    $site   - site settings array
-    $old    - submitted values to repopulate the form (name, email, phone,
-              reservation_date, party_size, message)
-    $errors - per-field error messages, keyed by field name; 'form' holds
-              form-level errors
-    $flash  - success message after a completed reservation, otherwise null
+require __DIR__ . '/../src/includes/partials/reservation-form.php';
 
-  The form must POST to reserve.php and include a hidden 'csrf' input set to
-  csrf_token(), or the submission is rejected. Escape all output with e().
-  A reference implementation of the previous design lives in
-  frontend-reference/public/reserve.php.
--->
-<?php require __DIR__ . '/../src/includes/footer.php'; ?>
+require __DIR__ . '/../src/includes/footer.php';

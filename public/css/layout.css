@@ -1,0 +1,8 @@
+/*
+ * Layout layer: the structural shell shared by every page.
+ *
+ * Belongs here: .site-header, .site-footer, the nav bar, page containers and
+ * max-widths, the main grid, and the breakpoints that rearrange them.
+ *
+ * Markup: src/includes/header.php, nav.php, footer.php
+ */
