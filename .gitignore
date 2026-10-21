@@ -2,5 +2,7 @@ src/config.php
 .vscode/
 .idea/
 .DS_Store
-src/secrets.php
 storage/
+
+# Scratch previews written while checking layout — never part of the site.
+public/_*

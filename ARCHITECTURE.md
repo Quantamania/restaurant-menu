@@ -33,47 +33,71 @@ outside it in `src/`, so a misconfigured server cannot serve them as text.
 
 ```
 restaurant-menu/
-├── public/                 the web root — point the server here
-│   ├── index.php           home
-│   ├── menu.php            the menu
-│   ├── order.php           ordering — dishes, then details
-│   ├── pay.php             paying for an order
-│   ├── payment-callback.php  where M-Pesa posts the result
-│   ├── account.php         sign in / register
-│   ├── order-status.php    "my orders" — the list, or one in full
-│   ├── reserve.php         booking a table
-│   ├── kitchen.php         THE STAFF SCREEN — password protected
-│   ├── style.css
-│   ├── script.js
-│   ├── favicon.svg, favicon.ico, apple-touch-icon.png, icon-192/512.png
-│   └── images/             dish photos, served at 640×640
-├── src/                    never served
-│   ├── config.php          database credentials (gitignored)
-│   ├── config.sample.php   the template to copy
-│   ├── secrets.php         mail / SMS / payment keys (gitignored)
-│   ├── secrets.example.php the template to copy, with the blanks empty
-│   ├── setup.php           the bootstrap every page runs first
-│   ├── functions.php       the shared toolbox
-│   ├── mail.php            secrets(), send_email(), and an SMTP client
-│   ├── sms.php             send_sms(), normalise_phone()
-│   ├── notify.php          what gets sent and when; the one-time codes
-│   ├── payments.php        payment state machine, M-Pesa STK push
-│   ├── accounts.php        customer accounts, and the shared rate limiter
-│   ├── staff.php           staff sign-in, and the status state machine
-│   ├── content.php         the restaurant's own text and rules
-│   ├── header.php          the top of every page
-│   └── footer.php          the bottom of every page
+│
+├── public/              THE WEB ROOT — the only folder a browser can reach
+│   ├── index.php            home
+│   ├── menu.php             the menu
+│   ├── account.php          sign in, register, your account
+│   ├── order.php            ordering (needs an account)
+│   ├── pay.php              paying for an order
+│   ├── order-status.php     your orders — the list, or one in full
+│   ├── reserve.php          booking a table
+│   ├── kitchen.php          THE STAFF BOARD — not linked from the site
+│   ├── payment-callback.php where M-Pesa posts its result
+│   ├── style.css            every style on the site, one file
+│   ├── script.js            every script, one file, all optional
+│   ├── images/              dish photos
+│   └── favicon.svg, favicon.ico, apple-touch-icon.png, icon-192/512.png
+│
+├── src/                 NEVER SERVED — the engine
+│   ├── setup.php            every page's first line; loads the five below
+│   ├── config.php           YOUR settings — gitignored
+│   ├── config.example.php   the template to copy
+│   ├── content.php          the restaurant's own words, hours and rules
+│   ├── functions.php        the toolbox: database, escaping, CSRF, logo
+│   ├── messaging.php        settings, email, SMS, and what gets sent when
+│   ├── payments.php         taking money
+│   ├── auth.php             customer accounts and the staff door
+│   ├── orders.php           the life of an order; the kitchen's queries
+│   ├── header.php           the top of every page
+│   └── footer.php           the bottom
+│
 ├── database/
-│   ├── schema.sql          the tables
-│   ├── seed.sql            draft menu, tables, photos
-│   └── upgrade.sql         brings an older database up to date (idempotent)
+│   ├── schema.sql           every table, from nothing
+│   ├── seed.sql             the menu and the tables in the room
+│   └── upgrade.sql          brings an older database up to date (idempotent)
+│
 ├── tools/
-│   └── staff-password.php  makes the kitchen password hash (command line)
-├── storage/                gitignored, written at runtime
-│   └── mail/               .eml files from the 'log' mail driver
-├── assets/originals/       full-size photos, kept out of the web root
-└── README.md               setup instructions
+│   └── staff-password.php   makes the kitchen password hash (command line)
+│
+├── storage/mail/        gitignored; .eml files from the 'log' mail driver
+├── assets/originals/    full-size photos, kept out of the web root
+├── README.md            how to install and run it
+└── ARCHITECTURE.md      this file
 ```
+
+### Why the files are grouped this way
+
+`src/` was fifteen files and is now eleven, grouped so that **one topic is one
+file**. The rule is: if you would always open two files together, they should
+be one file.
+
+| File | Holds |
+|---|---|
+| `setup.php` | the five `require`s and the session. Nothing else. |
+| `config.php` | database credentials, the kitchen password hash, mail/SMS/payment keys. One settings file, not two. |
+| `content.php` | everything the restaurant owns — name, hours, slots, prices rules. No PHP to touch. |
+| `functions.php` | the small shared things every page needs: `getPDO()`, `e()`, CSRF, the logo, breadcrumbs. |
+| `messaging.php` | was `mail.php` + `sms.php` + `notify.php`. Settings, how to send, and what to send — one topic, and you never touched one without the others. |
+| `payments.php` | starting, settling and failing a payment. |
+| `auth.php` | was `accounts.php` + the sign-in half of `staff.php`. Both doors, one shared rate limiter. |
+| `orders.php` | was the other half of `staff.php`. The order's lifecycle and the kitchen's queries — questions about *orders*, which is why they are no longer filed under "staff". |
+| `header.php` / `footer.php` | the page shell. |
+
+Each of the five logic files is loaded once by `setup.php`, in that order.
+Nothing else `require`s anything, so there is one place to look when you want
+to know what a page has available to it.
+
 
 ### Why there are three "driver" files
 
@@ -697,29 +721,35 @@ customer who ordered before accounts existed would lose their history the
 moment they registered. The page then says how many it found, because a brand
 new account that already has orders in it otherwise looks like a bug.
 
-#### The forms sit on the page, not on a card
+#### The shape of the screen
 
-The fields have no container of their own: transparent background, no box, a
-2px rule underneath. The form *is* the page's content, so a card around it
-only draws a second edge inside the first.
+Built to a supplied reference: a dark panel in one narrow column, large
+filled fields with rounded corners, a full-width primary button, then the
+quieter alternative under a rule. Measured against it — 27rem panel at 18px
+radius, 64px fields at 12px radius on a visible 1px border, a full-width
+56px primary, and an outlined secondary of the same shape.
 
-Three things make it read as one list rather than several inputs:
+**The labels sit inside the fields and rise out of the way once something is
+typed.** That is the placeholder-as-label look from the reference without its
+cost — a real placeholder vanishes the moment you start typing and takes the
+only description of the field with it, so a person who looks away mid-form
+has no way to know what they were filling in.
 
-- **head, switch and form share one `max-width` (480px)** and are centred in
-  the content column, so every left edge lines up. Measured: five fields, two
-  distinct left edges on a wide screen (the paired columns), and the labels
-  sit on exactly those same two edges.
-- **the underline is 2px at `#8a7659`** — 4.36:1 on white. A 1px hairline in
-  a lighter brown would look tidier and would fail the 3:1 a UI boundary
-  needs; the field's only edge has to be visible.
-- **focus thickens and colours the rule and adds a faint wash** rather than
-  an outline box appearing from nowhere.
+The movement is pure CSS. `:placeholder-shown` matches only while an input is
+empty, which is why **every input carries `placeholder=" "`** — a single
+space. Without it the selector never matches and the label never moves.
 
-Name and phone pair up on a wide screen, as do the two password fields;
-everything collapses to a single column below 560px, where all five fields
-share one left edge.
+```css
+.af__input:not(:placeholder-shown) + .af__label,
+.af__input:focus + .af__label { top: .5rem; font-size: .72rem; }
+```
+
+The label is a real `<label for="">`, so it is still announced properly and
+still focuses the field when clicked (`pointer-events: none` lets the click
+through to the input underneath).
 
 #### Showing a password
+
 
 `script.js` section 8. The button is in the HTML **with `hidden` on it**, and
 the script takes the attribute off — so a visitor with no JavaScript never
@@ -993,10 +1023,10 @@ started, and `secure` only when the request is already HTTPS — setting it
 unconditionally would make a local HTTP dev server hand out a cookie the
 browser then refuses to send back.
 
-**Credentials.** `src/config.php` and `src/secrets.php` are both outside the
-web root and gitignored; `config.sample.php` and `secrets.example.php` are the
-templates, committed with the blanks empty so a new developer can see which
-values are needed without any of them being published. Every secret can
+**Credentials.** `src/config.php` is outside the web root and gitignored;
+`config.example.php` is the template, committed with every blank empty so a
+new developer can see which values are needed without any of them being
+published. Every secret can
 instead come from an environment variable, and the environment wins — which
 is the better arrangement on a real server, since a password in an
 environment variable is not sitting in a file a misconfigured web server
@@ -1213,6 +1243,13 @@ border at 3.08:1 and a disabled dropdown option at 4.87:1.
 | Delete POST with a bad CSRF token | refused, order still there |
 | The real confirm | `302`, row gone, "DEL-UI02 deleted." on the board |
 
+### Hover states — audited across six pages
+
+Every `a` and `button` on the account, kitchen, tracking, menu, reserve and
+both auth screens, with the hover background composited onto the real surface
+behind it: **0 failing**, against 4.5:1 for anything showing text and 3:1 for
+a graphic. Two were found and fixed first (above).
+
 ### The auth forms and the password reveal
 
 | Done | Result |
@@ -1307,14 +1344,13 @@ has no script at all.
 
 ---
 
-## 8. Configuration — the three files to edit
+## 8. Configuration — the two files to edit
 
-**`src/config.php`** — database host, name, user, password.
-
-**`src/secrets.php`** — mail, SMS and payment credentials. Copy
-`secrets.example.php` and fill in the blanks; every value can instead be
-supplied as an environment variable, which wins over the file. With no
-`secrets.php` at all, every driver is `log`/`manual` and the whole site still
+`src/config.php` now carries **all** of it — the database block, the kitchen
+password hash, and the mail / SMS / payment keys. Copy
+`config.example.php` and fill in the blanks; every value can instead be
+supplied as an environment variable, which wins over the file. With the
+driver settings left alone, every driver is `log`/`manual` and the whole site
 works end to end — nothing leaves the machine.
 
 **`src/content.php`** — everything the restaurant owns, with no PHP to touch:
@@ -1393,7 +1429,7 @@ Honest list, in the order I would do it.
 3. **No real credentials are configured**, so email and SMS are written to the
    outbox and `storage/mail/` rather than sent, and M-Pesa is `manual`. The
    code paths are built and tested (§7) — this is filling in
-   `src/secrets.php`. For email the quickest route is a Gmail App Password;
+   `src/config.php`. For email the quickest route is a Gmail App Password;
    for SMS, an Africa's Talking sandbox key.
 
 4. **The M-Pesa callback cannot be reached from a laptop.** Daraja POSTs to a
@@ -1486,12 +1522,51 @@ one to every order that already existed, but `order.php` was not writing one,
 so the kitchen screen showed a timeline for new orders that began halfway
 through. It is now written inside the same transaction as the order itself.
 
+**Two buttons went invisible on hover.** `.button:hover` sets `color:#fff`,
+and `.button--ghost:hover` declared only a background — same specificity
+(0,2,0), so the white won and a ghost button's label turned white on a
+near-white background: **1.09:1**. Restating the colour on the hover rule
+makes it the last word for both properties. The same trap was latent on
+`.paymethods .button--ghost:hover`.
+
+Found by auditing, not by looking: a script reads every `:hover` rule out of
+the live CSSOM, composites the hover background onto whatever surface is
+actually behind the element, and compares it with the colour that will apply
+— which catches the case where the colour comes from a *different* rule than
+the background.
+
+**The logo dissolved on hover.** `.brand__face` is `fill: currentColor`, and
+the hover colour was `#1a1a1a` — on the near-black sidebar that is
+**1.04:1**, so the box vanished and left a floating white M. It is now
+`var(--c-teal)`: 3.51:1 against the rail, 5.18:1 for the white M inside it,
+and 5.18:1 for the wordmark on a pale page. The landing page's own hover
+override was removed rather than kept — its lighter `--c-teal-lit` looked
+better against the dark hero but left the white M at 2.24:1 on the box it
+sits inside.
+
 **The kitchen page never loaded the webfonts.** It is its own document, so it
 did not inherit `header.php`'s font links — the wordmark fell back from
 Poppins 700 to a system sans and read noticeably thinner than the same logo
 everywhere else, and the M in the box lost Anton entirely. Verified fixed by
 comparing the computed `font-family` and `font-weight` of both logos: Poppins
 700 and Anton 400 on each.
+
+**The footer watermark came out invisible, twice.** First attempt put the
+name on a cream band, because dark brown directly on the deep-teal footer is
+1.8:1. Then `body.is-landing .site-footer p` (0,2,1) overrode the brown with
+the footer's pale body colour (0,1,0) and it rendered at **1.01:1** on that
+cream — the same specificity trap as the ghost button.
+
+It is now a watermark proper: no panel, straight on the teal, in `#150f0a` at
+**2.53:1**. That is deliberately under the 4.5:1 a piece of text must reach,
+and allowed to be, because it is `aria-hidden` decoration and the name is
+already in the page three times. 2.53 is also near the ceiling — pure black
+on this teal reaches only 2.80 — so a darker brown would gain nothing.
+
+**A full-bleed element built with `calc(50% - 50vw)` overshoots** by the
+width of the scrollbar, because `vw` counts it and the element does not. The
+watermark cancels the wrap's own padding instead, with the same clamp
+negated, and lands exactly on the document edge at every width.
 
 **Breadcrumbs sat underneath the rail's pull-in button**, which is
 `position: fixed` exactly where the trail begins. Measured in both rail

@@ -1,10 +1,5 @@
 <?php
-/* ===========================================================================
- * MENU PAGE
- *
- * Part 1 (PHP)  - fetch the menu from the database
- * Part 2 (HTML) - the masthead and every course
- * =========================================================================== */
+/* MENU PAGE */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -25,13 +20,11 @@ try {
     )->fetchAll();
 
     // Group the flat list of rows by category, so the page can loop over
-    // "Breakfast" and its dishes, then "Mains" and its dishes, and so on.
     foreach ($rows as $row) {
         $categories[$row['category_name']][] = $row;
     }
 } catch (Throwable $ex) {
-    // Never show the raw database error to a visitor: log it, show a friendly
-    // message, and read the real reason in the terminal running the server.
+    // Never show the raw database error to a visitor.
     error_log($ex->getMessage());
     $error = 'The menu is unavailable right now. Please try again later.';
 }
@@ -59,8 +52,7 @@ require __DIR__ . '/../src/header.php';
       </h1>
       <p class="masthead__sub">
         <?php
-          // Stacked one word per line, so trailing commas and full stops are
-          // dropped — they read as stray marks in a vertical block.
+          // Stacked one word per line, so trailing commas and full stops are dropped.
           foreach (preg_split('/\s+/', trim($site['tagline'])) as $word):
             $word = trim($word, " \t.,;:!?");
             if ($word === '') { continue; }
@@ -100,8 +92,7 @@ require __DIR__ . '/../src/header.php';
               <article class="plate" id="item-<?= (int) $item['id'] ?>">
 
                 <?php
-                  // A photo if the kitchen has added one, otherwise a tile with
-                  // the dish's initial so the row never looks broken.
+                  // A photo if the kitchen has added one.
                   $photo = trim((string) ($item['image'] ?? ''));
                   $hasPhoto = $photo !== '' && is_file(__DIR__ . '/images/' . basename($photo));
                 ?>

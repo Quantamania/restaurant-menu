@@ -1,17 +1,5 @@
 <?php
-/* ===========================================================================
- * ACCOUNT PAGE
- *
- * Sign in, or create an account. Both on one page, because somebody who
- * cannot remember whether they have registered should not have to guess
- * which page to be on.
- *
- * Reached on the way to ordering: order.php sends anyone not signed in here
- * with ?next=order.php, and this page sends them back once they are.
- *
- * Part 1 (PHP)  - handle the two forms
- * Part 2 (HTML) - signed in: their details. Signed out: the two forms.
- * =========================================================================== */
+/* ACCOUNT PAGE */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -22,10 +10,7 @@ $errors  = [];          // field => message, for the register form
 $signInError = null;    // one message for the sign-in form
 $mode    = ($_GET['mode'] ?? $_POST['mode'] ?? '') === 'register' ? 'register' : 'signin';
 
-// Where to go afterwards. Checked against a list of our own pages: taking a
-// path from the query string and redirecting to it unchecked is an open
-// redirect, which turns this page into a convincing way to bounce somebody
-// to a phishing site.
+// Where to go afterwards.
 $allowedNext = ['order.php', 'order-status.php', 'menu.php', 'reserve.php', 'index.php'];
 $next = in_array($_GET['next'] ?? $_POST['next'] ?? '', $allowedNext, true)
       ? ($_GET['next'] ?? $_POST['next'])
@@ -82,8 +67,7 @@ if (($_POST['action'] ?? null) === 'register') {
         );
 
         if ($result['ok']) {
-            // claim_orders_for_user() has left the number of past orders it
-            // attached in the session; the destination page says so.
+            // claim_orders_for_user() has left the number of past orders it attached in the session.
             header('Location: ' . $next . (str_contains($next, '?') ? '&' : '?') . 'welcome=1');
             exit;
         }
@@ -103,221 +87,306 @@ require __DIR__ . '/../src/header.php';
     <?php if ($user): ?>
 
       <!-- ====================== signed in ====================== -->
-      <div class="section-head">
-        <span class="section-eyebrow">Your account</span>
-        <h1 class="section-title">Hello, <?= e(explode(' ', $user['name'])[0]) ?></h1>
-      </div>
+      <?php
+        // A few numbers worth showing.
+        $mine   = orders_for_user((int) $user['id']);
+        $live   = array_filter($mine, fn ($o) => in_array($o['status'], ['new','preparing','ready'], true));
+        $spent  = array_sum(array_map(fn ($o) => (float) $o['total'],
+                    array_filter($mine, fn ($o) => $o['status'] !== 'cancelled')));
+        $owing  = array_filter($mine, fn ($o) => $o['payment_status'] !== 'paid'
+                                              && $o['status'] !== 'cancelled');
+        $latest = $mine[0] ?? null;
+      ?>
 
-      <div class="card acct">
-        <dl class="acct__facts">
-          <dt>Name</dt>
-          <dd><?= e($user['name']) ?></dd>
-          <dt>Email</dt>
-          <dd><?= e($user['email']) ?></dd>
-          <dt>Phone</dt>
-          <dd><?= e($user['phone']) ?></dd>
-          <dt>Member since</dt>
-          <dd><?= e(date('j M Y', strtotime($user['created_at']))) ?></dd>
-        </dl>
-
-        <p class="acct__note">
-          Your orders are tied to this account, so tracking one is just a
-          matter of being signed in — there is no code to wait for.
-        </p>
-
-        <div class="acct__acts">
-          <a class="button" href="order-status.php">My orders</a>
-          <a class="button button--ghost" href="order.php">Order food</a>
-          <form method="post" action="account.php">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <button class="button button--ghost" type="submit" name="action" value="sign-out">
-              Sign out
-            </button>
-          </form>
+      <!-- The banner carries the identity, so the detail below it does not
+           have to repeat the name in a heading as well as a row. -->
+      <header class="me">
+        <span class="me__avatar" aria-hidden="true"><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?></span>
+        <div class="me__who">
+          <p class="me__eyebrow">Signed in as</p>
+          <h1 class="me__name"><?= e($user['name']) ?></h1>
+          <p class="me__sub"><?= e($user['email']) ?></p>
         </div>
+        <form class="me__out" method="post" action="account.php">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <button class="button button--ghost button--small" type="submit" name="action" value="sign-out">
+            Sign out
+          </button>
+        </form>
+      </header>
+
+      <ul class="mestats">
+        <li class="mestat">
+          <span class="mestat__n"><?= count($mine) ?></span>
+          <span class="mestat__k"><?= count($mine) === 1 ? 'Order' : 'Orders' ?></span>
+        </li>
+        <li class="mestat <?= $live ? 'mestat--live' : '' ?>">
+          <span class="mestat__n"><?= count($live) ?></span>
+          <span class="mestat__k">In progress</span>
+        </li>
+        <li class="mestat <?= $owing ? 'mestat--owing' : '' ?>">
+          <span class="mestat__n"><?= count($owing) ?></span>
+          <span class="mestat__k">To pay</span>
+        </li>
+        <li class="mestat">
+          <span class="mestat__n mestat__n--money">KSh <?= number_format($spent, 0) ?></span>
+          <span class="mestat__k">Spent with us</span>
+        </li>
+      </ul>
+
+      <div class="mecards">
+
+        <!-- What is happening right now, if anything is. -->
+        <section class="card mecard mecard--wide">
+          <h2 class="mecard__title">Your latest order</h2>
+
+          <?php if (!$latest): ?>
+            <p class="mecard__empty">
+              You have not ordered yet. The menu is a good place to start.
+            </p>
+            <a class="button" href="menu.php">See the menu</a>
+          <?php else: ?>
+            <?php
+              $lDue  = DateTimeImmutable::createFromFormat(
+                          'Y-m-d H:i:s', $latest['order_date'] . ' ' . $latest['order_time']);
+              $lWord = [
+                  'new' => 'Order received', 'preparing' => 'Being cooked',
+                  'ready' => 'Ready', 'completed' => 'With you',
+                  'cancelled' => 'Cancelled',
+              ][$latest['status']] ?? $latest['status'];
+            ?>
+            <p class="mecard__ref">
+              <strong><?= e($latest['reference']) ?></strong>
+              <span class="mytag mytag--<?= e($latest['status']) ?>"><?= e($lWord) ?></span>
+            </p>
+            <p class="mecard__line">
+              <?= e(implode(', ', array_map(
+                  fn ($l) => $l['quantity'] . '× ' . $l['name'], $latest['items']))) ?>
+            </p>
+            <p class="mecard__line mecard__line--quiet">
+              <?= e($lDue ? $lDue->format('j M, g:i a') : '') ?> &middot;
+              <?= $latest['order_type'] === 'delivery' ? 'Delivery' : 'Collection' ?> &middot;
+              KSh <?= number_format((float) $latest['total'], 0) ?>
+            </p>
+            <a class="button" href="order-status.php?ref=<?= urlencode($latest['reference']) ?>">
+              Track this order
+            </a>
+          <?php endif; ?>
+        </section>
+
+        <!-- The details, as a card rather than a bare list. -->
+        <section class="card mecard">
+          <h2 class="mecard__title">Your details</h2>
+          <dl class="medetails">
+            <dt>Phone</dt>
+            <dd><?= e($user['phone']) ?></dd>
+            <dt>Email</dt>
+            <dd><?= e($user['email']) ?></dd>
+            <dt>Member since</dt>
+            <dd><?= e(date('j M Y', strtotime($user['created_at']))) ?></dd>
+          </dl>
+          <p class="mecard__note">
+            These fill in your order form. You can change them on any order
+            without changing the account.
+          </p>
+        </section>
+
+        <!-- Where to go next. -->
+        <section class="card mecard mecard--go">
+          <h2 class="mecard__title">What next</h2>
+          <div class="melinks">
+            <a class="melink" href="order.php">
+              <span class="melink__k">Order food</span>
+              <span class="melink__v">Your details are already filled in</span>
+            </a>
+            <a class="melink" href="order-status.php">
+              <span class="melink__k">All my orders</span>
+              <span class="melink__v"><?= count($mine) ?> on this account</span>
+            </a>
+            <a class="melink" href="reserve.php">
+              <span class="melink__k">Book a table</span>
+              <span class="melink__v">Eat in instead</span>
+            </a>
+          </div>
+        </section>
+
       </div>
 
     <?php else: ?>
 
       <!-- ====================== signed out ======================
-           No card and no panel: the fields sit directly on the page in one
-           centred column. An account form is the whole content of the page,
-           so a box around it only draws a second edge inside the first. -->
-      <div class="authhead">
-        <h1 class="authhead__title">
-          <?= $mode === 'register' ? 'Create your account' : 'Welcome back' ?>
-        </h1>
-        <p class="authhead__lead">
+           Built to the reference: a dark panel, one narrow column, large
+           filled fields with rounded corners, a full-width primary button,
+           then the quieter alternatives underneath a rule.
+
+           The labels are real <label>s that sit INSIDE the field and rise
+           out of the way once there is something typed. That is the look in
+           the reference — placeholder-as-label — without its cost, which is
+           that a placeholder disappears the moment you start typing and
+           takes the only description of the field with it. The movement is
+           pure CSS (:placeholder-shown), so it needs no JavaScript. -->
+      <div class="auth">
+
+        <div class="auth__brandline">
+          <?= brand_lockup($site['name'], 'brand--auth', 'auth') ?>
+        </div>
+
+        <h1 class="auth__title">
           <?= $mode === 'register'
-              ? 'It takes a moment, and then your orders are all in one place.'
-              : 'Sign in to see your orders and to order again.' ?>
-        </p>
-      </div>
+              ? 'Create your ' . e($site['name']) . ' account'
+              : 'Log into ' . e($site['name']) ?>
+        </h1>
 
-      <?php if (($_GET['why'] ?? '') === 'order'): ?>
-        <p class="msg msg--info authmsg">
-          <span class="msg__icon" aria-hidden="true">i</span>
-          <span>Ordering needs an account, so we know where to send your food
-                and you can follow it afterwards.</span>
-        </p>
-      <?php endif; ?>
-
-      <!-- Two links that reload with ?mode=, not scripted tabs, so the
-           switch works with JavaScript off. -->
-      <div class="authswitch" role="tablist" aria-label="Sign in or register">
-        <a class="authswitch__tab<?= $mode === 'signin' ? ' is-on' : '' ?>"
-           href="account.php?mode=signin&amp;next=<?= urlencode($next) ?>"
-           role="tab" aria-selected="<?= $mode === 'signin' ? 'true' : 'false' ?>">
-          Sign in
-        </a>
-        <a class="authswitch__tab<?= $mode === 'register' ? ' is-on' : '' ?>"
-           href="account.php?mode=register&amp;next=<?= urlencode($next) ?>"
-           role="tab" aria-selected="<?= $mode === 'register' ? 'true' : 'false' ?>">
-          Create an account
-        </a>
-      </div>
-
-      <?php if ($mode === 'signin'): ?>
-
-        <?php if ($signInError): ?>
-          <p class="msg msg--bad authmsg">
-            <span class="msg__icon" aria-hidden="true">!</span>
-            <span><?= e($signInError) ?></span>
+        <?php if (($_GET['why'] ?? '') === 'order'): ?>
+          <p class="auth__why">
+            Ordering needs an account, so we know where to send your food and
+            you can follow it afterwards.
           </p>
         <?php endif; ?>
 
-        <form class="authform" method="post" action="account.php">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="next" value="<?= e($next) ?>">
-          <input type="hidden" name="mode" value="signin">
+        <?php if ($mode === 'signin'): ?>
 
-          <div class="authfield">
-            <label class="authfield__label" for="si-email">Email</label>
-            <input class="authfield__input" type="email" id="si-email" name="email"
-                   value="<?= e($old['email']) ?>" required autocomplete="email"
-                   placeholder="you@example.com" autofocus>
-          </div>
+          <?php if ($signInError): ?>
+            <p class="auth__error" role="alert">
+              <span aria-hidden="true">!</span> <?= e($signInError) ?>
+            </p>
+          <?php endif; ?>
 
-          <div class="authfield">
-            <label class="authfield__label" for="si-password">Password</label>
-            <!-- The reveal button starts hidden and script.js switches it on,
-                 so with no JavaScript there is no button that does nothing. -->
-            <div class="authfield__pw">
-              <input class="authfield__input" type="password" id="si-password"
-                     name="password" required autocomplete="current-password">
-              <button class="pwtoggle" type="button" data-pw-toggle="si-password"
+          <form class="auth__form" method="post" action="account.php">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="next" value="<?= e($next) ?>">
+            <input type="hidden" name="mode" value="signin">
+
+            <div class="af">
+              <input class="af__input" type="email" id="si-email" name="email"
+                     value="<?= e($old['email']) ?>" required autocomplete="email"
+                     placeholder=" " autofocus>
+              <label class="af__label" for="si-email">Email address</label>
+            </div>
+
+            <div class="af">
+              <input class="af__input af__input--pw" type="password" id="si-password"
+                     name="password" required autocomplete="current-password"
+                     placeholder=" ">
+              <label class="af__label" for="si-password">Password</label>
+              <button class="af__reveal" type="button" data-pw-toggle="si-password"
                       aria-controls="si-password" aria-pressed="false" hidden>
                 <span data-pw-label>Show</span>
               </button>
             </div>
-          </div>
 
-          <button class="button button--lg button--block authform__go"
-                  type="submit" name="action" value="sign-in">
-            Sign in
-          </button>
+            <button class="auth__go" type="submit" name="action" value="sign-in">
+              Log in
+            </button>
+          </form>
 
-          <p class="authform__alt">
-            No account yet?
-            <a href="account.php?mode=register&amp;next=<?= urlencode($next) ?>">Create one</a>.
+          <p class="auth__aside">
+            Forgotten your password? Call us on <?= e($site['phone']) ?> —
+            we cannot reset it from here yet.
           </p>
-        </form>
 
-      <?php else: ?>
+          <div class="auth__or"><span>or</span></div>
 
-        <?php if (!empty($errors['form'])): ?>
-          <p class="msg msg--bad authmsg">
-            <span class="msg__icon" aria-hidden="true">!</span>
-            <span><?= e($errors['form']) ?></span>
-          </p>
-        <?php endif; ?>
+          <a class="auth__alt" href="account.php?mode=register&amp;next=<?= urlencode($next) ?>">
+            Create a new account
+          </a>
 
-        <form class="authform" method="post" action="account.php">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="next" value="<?= e($next) ?>">
-          <input type="hidden" name="mode" value="register">
+        <?php else: ?>
 
-          <!-- Name and phone share a row on a wide screen and stack on a
-               narrow one; everything else is full width, so the left edge of
-               every field lines up whatever the width. -->
-          <div class="authform__pair">
-            <div class="authfield<?= !empty($errors['name']) ? ' is-bad' : '' ?>">
-              <label class="authfield__label" for="rg-name">Name</label>
-              <input class="authfield__input" type="text" id="rg-name" name="name"
+          <?php if (!empty($errors['form'])): ?>
+            <p class="auth__error" role="alert">
+              <span aria-hidden="true">!</span> <?= e($errors['form']) ?>
+            </p>
+          <?php endif; ?>
+
+          <form class="auth__form" method="post" action="account.php">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="next" value="<?= e($next) ?>">
+            <input type="hidden" name="mode" value="register">
+
+            <div class="auth__pair">
+            <div class="af<?= !empty($errors['name']) ? ' is-bad' : '' ?>">
+              <input class="af__input" type="text" id="rg-name" name="name"
                      value="<?= e($old['name']) ?>" required maxlength="100"
-                     autocomplete="name" placeholder="Your full name" autofocus>
+                     autocomplete="name" placeholder=" " autofocus>
+              <label class="af__label" for="rg-name">Full name</label>
               <?php if (!empty($errors['name'])): ?>
-                <span class="authfield__msg authfield__msg--bad"><?= e($errors['name']) ?></span>
+                <span class="af__msg"><?= e($errors['name']) ?></span>
               <?php endif; ?>
             </div>
 
-            <div class="authfield<?= !empty($errors['phone']) ? ' is-bad' : '' ?>">
-              <label class="authfield__label" for="rg-phone">Phone</label>
-              <input class="authfield__input" type="tel" id="rg-phone" name="phone"
+            <div class="af<?= !empty($errors['phone']) ? ' is-bad' : '' ?>">
+              <input class="af__input" type="tel" id="rg-phone" name="phone"
                      value="<?= e($old['phone']) ?>" required autocomplete="tel"
-                     placeholder="0712 345 678">
-              <span class="authfield__msg<?= !empty($errors['phone']) ? ' authfield__msg--bad' : '' ?>">
-                <?= !empty($errors['phone']) ? e($errors['phone']) : 'The kitchen rings this if there is a problem.' ?>
+                     placeholder=" ">
+              <label class="af__label" for="rg-phone">Mobile number</label>
+              <span class="af__msg">
+                <?= !empty($errors['phone']) ? e($errors['phone'])
+                    : 'The kitchen rings this if there is a problem.' ?>
               </span>
             </div>
-          </div>
+            </div><!-- /.auth__pair -->
 
-          <div class="authfield<?= !empty($errors['email']) ? ' is-bad' : '' ?>">
-            <label class="authfield__label" for="rg-email">Email</label>
-            <input class="authfield__input" type="email" id="rg-email" name="email"
-                   value="<?= e($old['email']) ?>" required maxlength="190"
-                   autocomplete="email" placeholder="you@example.com">
-            <span class="authfield__msg<?= !empty($errors['email']) ? ' authfield__msg--bad' : '' ?>">
-              <?= !empty($errors['email']) ? e($errors['email']) : 'This is what you sign in with.' ?>
-            </span>
-          </div>
+            <div class="af<?= !empty($errors['email']) ? ' is-bad' : '' ?>">
+              <input class="af__input" type="email" id="rg-email" name="email"
+                     value="<?= e($old['email']) ?>" required maxlength="190"
+                     autocomplete="email" placeholder=" ">
+              <label class="af__label" for="rg-email">Email address</label>
+              <span class="af__msg">
+                <?= !empty($errors['email']) ? e($errors['email'])
+                    : 'This is what you log in with.' ?>
+              </span>
+            </div>
 
-          <div class="authform__pair">
-            <div class="authfield<?= !empty($errors['password']) ? ' is-bad' : '' ?>">
-              <label class="authfield__label" for="rg-password">Password</label>
-              <div class="authfield__pw">
-                <input class="authfield__input" type="password" id="rg-password"
-                       name="password" required autocomplete="new-password"
-                       minlength="<?= ACCOUNT_MIN_PASSWORD ?>">
-                <button class="pwtoggle" type="button" data-pw-toggle="rg-password"
-                        aria-controls="rg-password" aria-pressed="false" hidden>
-                  <span data-pw-label>Show</span>
-                </button>
-              </div>
-              <span class="authfield__msg<?= !empty($errors['password']) ? ' authfield__msg--bad' : '' ?>">
+            <div class="auth__pair">
+            <div class="af<?= !empty($errors['password']) ? ' is-bad' : '' ?>">
+              <input class="af__input af__input--pw" type="password" id="rg-password"
+                     name="password" required autocomplete="new-password"
+                     minlength="<?= ACCOUNT_MIN_PASSWORD ?>" placeholder=" ">
+              <label class="af__label" for="rg-password">Password</label>
+              <button class="af__reveal" type="button" data-pw-toggle="rg-password"
+                      aria-controls="rg-password" aria-pressed="false" hidden>
+                <span data-pw-label>Show</span>
+              </button>
+              <span class="af__msg">
                 <?= !empty($errors['password']) ? e($errors['password'])
                     : 'At least ' . ACCOUNT_MIN_PASSWORD . ' characters.' ?>
               </span>
             </div>
 
-            <div class="authfield<?= !empty($errors['confirm']) ? ' is-bad' : '' ?>">
-              <label class="authfield__label" for="rg-confirm">Repeat password</label>
-              <div class="authfield__pw">
-                <input class="authfield__input" type="password" id="rg-confirm"
-                       name="confirm" required autocomplete="new-password">
-                <button class="pwtoggle" type="button" data-pw-toggle="rg-confirm"
-                        aria-controls="rg-confirm" aria-pressed="false" hidden>
-                  <span data-pw-label>Show</span>
-                </button>
-              </div>
+            <div class="af<?= !empty($errors['confirm']) ? ' is-bad' : '' ?>">
+              <input class="af__input af__input--pw" type="password" id="rg-confirm"
+                     name="confirm" required autocomplete="new-password" placeholder=" ">
+              <label class="af__label" for="rg-confirm">Repeat password</label>
+              <button class="af__reveal" type="button" data-pw-toggle="rg-confirm"
+                      aria-controls="rg-confirm" aria-pressed="false" hidden>
+                <span data-pw-label>Show</span>
+              </button>
               <?php if (!empty($errors['confirm'])): ?>
-                <span class="authfield__msg authfield__msg--bad"><?= e($errors['confirm']) ?></span>
+                <span class="af__msg"><?= e($errors['confirm']) ?></span>
               <?php endif; ?>
             </div>
-          </div>
+            </div><!-- /.auth__pair -->
 
-          <button class="button button--lg button--block authform__go"
-                  type="submit" name="action" value="register">
-            Create my account
-          </button>
+            <button class="auth__go" type="submit" name="action" value="register">
+              Create account
+            </button>
+          </form>
 
-          <p class="authform__alt">
-            Already registered?
-            <a href="account.php?mode=signin&amp;next=<?= urlencode($next) ?>">Sign in</a>.
+          <p class="auth__aside">
+            By creating an account you agree to let us ring or text you about
+            your orders. Nothing else.
           </p>
-        </form>
 
-      <?php endif; ?>
+          <div class="auth__or"><span>or</span></div>
+
+          <a class="auth__alt" href="account.php?mode=signin&amp;next=<?= urlencode($next) ?>">
+            I already have an account
+          </a>
+
+        <?php endif; ?>
+
+      </div>
 
     <?php endif; ?>
 

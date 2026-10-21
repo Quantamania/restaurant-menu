@@ -1,26 +1,9 @@
-/* ===========================================================================
- * Maridadi Eat — all the JavaScript for the site
- *
- * There is only one script file, loaded at the bottom of every page by
- * src/footer.php. Everything here is a convenience: the site still works
- * correctly with JavaScript switched off.
- *
- *   1. SIDEBAR               (every page)
- *   2. RESERVATION FORM     (reserve.php only)
- *   3. TABLE PICKER         (reserve.php only)
- *   4. ORDER PAGE           (order.php only)
- *   5. FINDING A DISH       (order.php only)
- * =========================================================================== */
+/* Maridadi Eat — all the JavaScript for the site */
 
 (function () {
   "use strict";
 
-  /* -------------------------------------------------------------------------
-   * 1. SIDEBAR
-   *
-   * On a wide screen the sidebar is simply always there and this does
-   * nothing. Below 960px it sits off-screen until the ☰ button slides it in.
-   * ------------------------------------------------------------------------- */
+  /* 1. SIDEBAR */
 
   var navToggle = document.querySelector(".topbar__toggle");
   var sidebar   = document.getElementById("sidebar");
@@ -62,8 +45,7 @@
     });
   }
 
-  /* Pulling the rail in and out on a wide screen. The choice is remembered,
-     so it survives moving between pages. */
+  /* Pulling the rail in and out on a wide screen. The choice is remembered, */
   var railToggle = document.querySelector("[data-rail-toggle]");
 
   if (railToggle) {
@@ -87,13 +69,7 @@
     });
   }
 
-  /* -------------------------------------------------------------------------
-   * 2. RESERVATION FORM
-   *
-   * These only run on reserve.php, because that is the only page with a
-   * #reservation_date field. reserve.php checks every value again on the
-   * server — that is the check that actually protects the database.
-   * ------------------------------------------------------------------------- */
+  /* 2. RESERVATION FORM */
 
   /* Stop the date picker offering days that have already passed */
   var date = document.getElementById("reservation_date");
@@ -131,21 +107,13 @@
     });
   }
 
-  /* -------------------------------------------------------------------------
-   * 3. TABLE PICKER
-   *
-   * Changing the date, seating or party size reloads the table picker, so you
-   * always see what is actually free. With JavaScript off, the "Check
-   * availability" button inside <noscript> does the same thing.
-   * ------------------------------------------------------------------------- */
+  /* 3. TABLE PICKER */
 
   var bookingForm = document.querySelector(".reservation-form");
 
   if (bookingForm) {
 
-    /* The stub on the left fills in as choices are made, so the booking is
-       always visible without scrolling back up. PHP prints the same values
-       on every page load, so it is correct with JavaScript off too. */
+    /* The stub on the left fills in as choices are made, so the booking is */
     var stub = {
       date:  document.querySelector('[data-stub="date"]'),
       time:  document.querySelector('[data-stub="time"]'),
@@ -202,16 +170,7 @@
 
   }
 
-  /* -------------------------------------------------------------------------
-   * 4. ORDER PAGE
-   *
-   * Two conveniences on order.php:
-   *   a) the delivery address only appears when "Delivery" is chosen
-   *   b) the dish list, the running order and the totals stay in step
-   *
-   * With JavaScript off, the address box is simply always visible, and PHP
-   * prints the correct total every time the page is submitted.
-   * ------------------------------------------------------------------------- */
+  /* 4. ORDER PAGE */
 
   var orderForm = document.querySelector(".order-form");
 
@@ -233,9 +192,7 @@
       syncAddress();
     }
 
-    /* (b) turn each quantity box into a - [n] + stepper.
-           Built here rather than in the HTML so that with JavaScript off the
-           plain number box is still there and still works. */
+    /* (b) turn each quantity box into a - [n] + stepper. */
     orderForm.querySelectorAll("[data-qty]").forEach(function (box) {
       var input = box.querySelector(".qty__input");
       if (!input) { return; }
@@ -271,21 +228,17 @@
         plus.disabled  = now >= max;
       };
       input.addEventListener("input", syncButtons);
-      /* and once now, so a dish sitting at zero starts with its minus
-         already greyed out rather than waiting for the first click */
+      /* and once now, so a dish sitting at zero starts with its minus */
       syncButtons();
     });
 
-    /* (c) keep the tray, the totals and the delivery note in step with the
-           boxes. PHP works all of this out again on submit — this is only so
-           the customer can see it before pressing the button. */
+    /* (c) keep the tray, the totals and the delivery note in step with the */
     var trayList  = orderForm.querySelector("[data-tray-list]");
     var trayEmpty = orderForm.querySelector("[data-tray-empty]");
     var trayCount = orderForm.querySelector("[data-tray-count]");
     var note      = orderForm.querySelector("[data-delivery-min]");
 
-    /* The running total is printed twice — on the bar and inside the drawer —
-       so write to every copy, not just the first. */
+    /* The running total is printed twice — on the bar and inside the drawer — */
     var subBoxes   = orderForm.querySelectorAll("[data-order-subtotal]");
     var totalBoxes = orderForm.querySelectorAll("[data-order-total]");
 
@@ -343,8 +296,7 @@
           row.querySelector(".cart__desc").textContent  = pick.dataset.desc || "";
           row.querySelector(".cart__money").textContent = money(qty * price);
 
-          /* The real <input> lives on the dish card; these buttons drive it,
-             so the form never carries the same field twice. */
+          /* The real <input> lives on the dish card; these buttons drive it, */
           var step = row.querySelector(".cart__step");
           var nudge = function (by, label) {
             var b = document.createElement("button");
@@ -429,10 +381,7 @@
       var timeField = document.getElementById("order_time");
       if (timeField) { timeField.addEventListener("change", refresh); }
 
-      /* NOT addressField: that name is already taken above by the wrapping
-         .field div, and var is function-scoped — reusing it here quietly
-         repointed the delivery toggle at the textarea, so the address box
-         never appeared. */
+      /* NOT addressField: that name is already taken above by the wrapping */
       var addressInput = document.getElementById("address");
       if (addressInput) { addressInput.addEventListener("input", refresh); }
 
@@ -440,13 +389,7 @@
     }
   }
 
-  /* -------------------------------------------------------------------------
-   * 5. FINDING A DISH            (order.php only)
-   *
-   * The search box and the category chips just hide cards that do not match.
-   * Nothing is removed, so the quantity boxes of hidden dishes still submit —
-   * a dish you added and then filtered away stays in your order.
-   * ------------------------------------------------------------------------- */
+  /* 5. FINDING A DISH            (order.php only) */
 
   var dishGrid = document.querySelector(".dishes");
 
@@ -491,23 +434,7 @@
     applyFilter();
   }
 
-  /* -------------------------------------------------------------------------
-   * 4. THE PAGE CHANGE
-   *
-   * The navigation is a bar across the top of the landing page and a rail
-   * down the side of every other page. Rather than cut from one to the other,
-   * this holds the link just long enough for the bar to close in to the left
-   * corner (or, coming home, for the rail to collapse upward). The next page
-   * picks the movement up from there — see the small script in the <head>,
-   * which marks the document before it is painted.
-   *
-   * Every link that leaves the page is included, not only the ones in the
-   * navigation: the hero buttons, the dish cards, the three cards, the edge
-   * rail, the footer.
-   *
-   * It is all an enhancement. With JavaScript off, on a narrow screen, or for
-   * anyone who prefers less motion, every link is followed the normal way.
-   * ---------------------------------------------------------------------- */
+  /* 4. THE PAGE CHANGE */
   (function () {
     var FLAG  = "nav-morph";
     var WIDE  = "(min-width: 961px)";
@@ -520,10 +447,7 @@
     var root = document.documentElement;
     var body = document.body;
 
-    /* ---- the arriving half ------------------------------------------------
-       The <head> script already put nav-in / nav-out / nav-fade on <html>.
-       Take it off once the animation has had its time, so the page is left in
-       its ordinary state. */
+    /* ---- the arriving half ------------------------------------------------ */
     var arriving = /\bnav-(in|out|fade)\b/.exec(root.className);
     if (arriving) {
       window.setTimeout(function () {
@@ -536,8 +460,7 @@
     var onLanding = body.classList.contains("is-landing");
     var leaving = false;
 
-    /* Which page does this href point at? Returns null for anything that is
-       not a plain internal page link. */
+    /* Which page does this href point at? Returns null for anything that is */
     var pageOf = function (link) {
       var raw = link.getAttribute("href");
       if (!raw || raw.charAt(0) === "#") { return null; }
@@ -579,8 +502,7 @@
       try { window.sessionStorage.setItem(FLAG, how); } catch (e) {}
       body.classList.add("is-nav-leaving");
 
-      /* follow when the cover has finished — or on a timer, so a dropped
-         animation event can never strand anyone on a covered page */
+      /* follow when the cover has finished — or on a timer, so a dropped */
       var gone = false;
       var go = function () {
         if (gone) { return; }
@@ -592,8 +514,7 @@
       window.setTimeout(go, how === "fade" ? 340 : 520);
     });
 
-    /* Coming back with the Back button, a page may be restored from the cache
-       exactly as it was left: mid-animation and covered. Put it straight. */
+    /* Coming back with the Back button, a page may be restored from the cache */
     window.addEventListener("pageshow", function (event) {
       if (!event.persisted) { return; }
       leaving = false;
@@ -602,19 +523,10 @@
     });
   })();
 
-  /* -------------------------------------------------------------------------
-   * 5. "CONFIRM" -> THE FORM YOU FILL IN
-   *
-   * Both pages work the same way. The button on the summary — the receipt on
-   * order.php, the ticket stub on reserve.php — is a plain link to the form
-   * further down, so with JavaScript off it simply jumps there. This adds the
-   * sliding, a brief highlight so it is clear where you have been taken, and
-   * the cursor in the first field you still have to fill in.
-   * ---------------------------------------------------------------------- */
+  /* 5. "CONFIRM" -> THE FORM YOU FILL IN */
   (function () {
     document.querySelectorAll("[data-to-details]").forEach(function (step) {
-      /* the form this button points at, taken from its own href rather than
-         a fixed id, so the same code serves both pages */
+      /* the form this button points at, taken from its own href rather than */
       var href   = step.getAttribute("href") || "";
       var target = href.charAt(0) === "#" ? document.getElementById(href.slice(1)) : null;
       if (!target) { return; }
@@ -625,8 +537,7 @@
         var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         target.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
 
-        /* the first field still empty, so someone coming back is not sent to
-           the top of a form they have already filled in */
+        /* the first field still empty, so someone coming back is not sent to */
         var first  = null;
         var fields = target.querySelectorAll("input, select, textarea");
         for (var i = 0; i < fields.length; i++) {
@@ -646,18 +557,7 @@
     });
   })();
 
-  /* -------------------------------------------------------------------------
-   * 6. THE TOP BAR TAKING A BACKGROUND ONCE THE PAGE MOVES
-   *
-   * Only the landing page, where the bar sits over the hero with nothing
-   * behind it. As soon as the page moves, the bar takes its teal so the
-   * navigation stays readable over whatever has scrolled under it.
-   *
-   * A passive scroll listener that does nothing but toggle one class. An
-   * IntersectionObserver would be the tidier instrument, but it reports
-   * through the browser's rendering steps, and this has to work even where
-   * those are throttled — a listener always fires.
-   * ---------------------------------------------------------------------- */
+  /* 6. THE TOP BAR TAKING A BACKGROUND ONCE THE PAGE MOVES */
   (function () {
     if (!document.body.classList.contains("is-landing")) { return; }
 
@@ -673,17 +573,7 @@
     update();           /* and once now, in case the page loads part-scrolled */
   })();
 
-  /* -------------------------------------------------------------------------
-   * 7. REPLAYING THE HERO WHEN THE PAGE COMES BACK FROM CACHE
-   *
-   * The entrance is a CSS animation, so it runs every time the browser builds
-   * the home page — a fresh visit, a reload, following a link back to it.
-   * The one case it misses is the Back button restoring the page from cache,
-   * where nothing is rebuilt and the animation is already finished.
-   *
-   * Taking the animation off, forcing a reflow and putting it back is what
-   * rewinds it.
-   * ---------------------------------------------------------------------- */
+  /* 7. REPLAYING THE HERO WHEN THE PAGE COMES BACK FROM CACHE */
   (function () {
     if (!document.body.classList.contains("is-landing")) { return; }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
@@ -697,18 +587,7 @@
   })();
 
 
-  /* ------------------------------------------------------------------------
-   * 8. SHOW / HIDE A PASSWORD
-   *
-   * The button is in the HTML with `hidden` on it, and this takes the
-   * attribute off. That way a visitor with no JavaScript never sees a
-   * control that cannot work — rather than the usual arrangement, where the
-   * button is always there and silently does nothing.
-   *
-   * Switching type="password" to type="text" is what actually reveals it.
-   * The input keeps its id, name, value and autocomplete through the change,
-   * so a password manager is not disturbed.
-   * ---------------------------------------------------------------------- */
+  /* 8. SHOW / HIDE A PASSWORD */
   (function () {
     var toggles = document.querySelectorAll("[data-pw-toggle]");
 
@@ -725,8 +604,7 @@
       var label = button.querySelector("[data-pw-label]") || button;
 
       var describe = function (shown) {
-        /* aria-pressed carries the state for assistive software; the word
-           carries it for everyone else. Both say the same thing. */
+        /* aria-pressed carries the state for assistive software; the word */
         button.setAttribute("aria-pressed", shown ? "true" : "false");
         button.setAttribute("aria-label",
           (shown ? "Hide" : "Show") + " password");
@@ -738,8 +616,7 @@
       button.addEventListener("click", function () {
         var shown = field.type === "text";
 
-        /* Where the cursor is, so revealing does not jump to the end of
-           what you have typed. */
+        /* Where the cursor is, so revealing does not jump to the end of */
         var at = field.selectionStart;
 
         field.type = shown ? "password" : "text";
@@ -750,13 +627,11 @@
         try {
           if (at !== null) { field.setSelectionRange(at, at); }
         } catch (e) {
-          /* Some engines refuse setSelectionRange on certain input types;
-             the reveal itself has already worked, so this is cosmetic. */
+          /* Some engines refuse setSelectionRange on certain input types; */
         }
       });
 
-      /* A revealed password must not survive being submitted or left on
-         screen: put it back the moment the form goes. */
+      /* A revealed password must not survive being submitted or left on */
       if (field.form) {
         field.form.addEventListener("submit", function () {
           if (field.type === "text") {

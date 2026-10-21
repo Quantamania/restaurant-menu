@@ -1,25 +1,5 @@
 <?php
-/* ===========================================================================
- * PAYMENT PAGE
- *
- * Step three of ordering: dishes, details, pay.
- *
- * Its own page with its own URL, rather than a third panel on order.php,
- * because paying is the step most likely to go wrong. A separate page can be
- * reloaded, come back to after an M-Pesa prompt times out, or abandoned and
- * picked up from the confirmation email — all without re-posting the order
- * or risking a second one.
- *
- * WHO CAN SEE IT
- *
- * Only the browser that placed the order. The reference alone is not enough:
- * it is short enough to guess, and this page shows a name and an address. A
- * stranger with a reference gets sent to the tracking page, which asks for a
- * code sent to the phone on the order.
- *
- * Part 1 (PHP)  - find the order, handle the chosen method
- * Part 2 (HTML) - the summary, the methods, and what happens next
- * =========================================================================== */
+/* PAYMENT PAGE */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -40,8 +20,7 @@ try {
     $errors['form'] = 'We cannot reach the payment system right now. Please try again.';
 }
 
-// Not ours to show. Hand it to the tracking page, which knows how to prove
-// who somebody is; do not hint at whether the reference exists.
+// Not ours to show.
 if ($order && !in_array($reference, $_SESSION['my_orders'] ?? [], true)) {
     header('Location: order-status.php?ref=' . urlencode($reference));
     exit;
@@ -51,8 +30,7 @@ if (!$order && !isset($errors['form'])) {
     $errors['form'] = 'We cannot find that order.';
 }
 
-// Already settled — there is nothing to do here, so do not offer to charge
-// again. Straight to the receipt.
+// Already settled — there is nothing to do here, so do not offer to charge again.
 if ($order && $order['payment_status'] === 'paid') {
     header('Location: order-status.php?ref=' . urlencode($reference));
     exit;
@@ -78,13 +56,11 @@ if ($order && ($_POST['action'] ?? null) === 'pay' && !isset($errors['form'])) {
             if (!$result['ok']) {
                 $errors['form'] = $result['error'];
             } elseif ($method === 'cash') {
-                // Nothing to wait for: the kitchen can start, and the money
-                // is handed over with the food.
+                // Nothing to wait for: the kitchen can start.
                 header('Location: order-status.php?ref=' . urlencode($reference) . '&paid=cash');
                 exit;
             } else {
-                // Redirect rather than fall through to the HTML, so a reload
-                // of this page does not start a second payment.
+                // Redirect rather than fall through to the HTML.
                 header('Location: pay.php?ref=' . urlencode($reference) . '&sent=1');
                 exit;
             }
@@ -92,13 +68,7 @@ if ($order && ($_POST['action'] ?? null) === 'pay' && !isset($errors['form'])) {
     }
 }
 
-/* ------------------------------------------------- a development shortcut --
- * With no gateway configured there is no way for a payment to complete on
- * its own, which makes the flow after "waiting" impossible to try. On a
- * local machine only, this stands in for the callback Safaricom would send.
- *
- * Both conditions matter: no gateway AND a local request. On a real server
- * the button does not exist, so it cannot be used to mark an order paid. */
+/* ------------------------------------------------- a development shortcut -- */
 
 function is_local_request(): bool
 {
@@ -127,8 +97,7 @@ if (isset($_GET['sent'])) {
     $notice = 'sent';
 }
 
-// Waiting for M-Pesa to land — unless they have asked to pick a different
-// way, in which case show the chooser again even though a payment is open.
+// Waiting for M-Pesa to land.
 $waiting = $order
         && $order['payment_status'] === 'pending'
         && $payment

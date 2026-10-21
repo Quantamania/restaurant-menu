@@ -1,63 +1,30 @@
 <?php
-/* ===========================================================================
- * CUSTOMER ACCOUNTS
- *
- * Ordering requires one. That is friction before the first order, and what
- * it buys is that "where is my food?" becomes "sign in" — no reference code
- * to keep, no one-time password texted to a phone that might be flat.
- *
- * WHAT IS STORED
- *
- * A bcrypt hash from password_hash(), never a password. The salt and the
- * cost live inside the hash, which is why there is nothing else to keep.
- *
- * THE SHAPE OF A SESSION
- *
- *   $_SESSION['user_id']   the signed-in account
- *   $_SESSION['my_orders'] references this browser placed (kept for the
- *                          orders that predate accounts, and so the payment
- *                          page can recognise an order placed a moment ago)
- *
- * Ownership of an order is decided by orders.user_id, not by the session.
- * The session only says who you are; the database says what is yours.
- * =========================================================================== */
-
-require_once __DIR__ . '/mail.php';   // secrets(), used by the notify helpers
+/* WHO YOU ARE — customer accounts and the staff door */
 
 
-/** Wrong tries allowed before a lockout, and how long it lasts. */
+/* PART 1 — RATE LIMITING, shared by both doors */
+
+/* Wrong tries allowed before a lockout, and how long it lasts. */
 const ACCOUNT_MAX_TRIES    = 8;
 const ACCOUNT_LOCK_MINUTES = 15;
 
-/** The shortest password we will accept. */
+/* The shortest password we will accept. */
 const ACCOUNT_MIN_PASSWORD = 8;
 
 
-/* ------------------------------------------------------------ rate limiting
- * Shared with the kitchen door via the login_attempts table. Both need the
- * same defence, so they use the same code with a different scope.
- * ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------ rate limiting */
 
-/** The caller's IP, packed, for the attempts table. */
+/* The caller's IP, packed, for the attempts table. */
 function login_client_ip(): string
 {
-    // Deliberately NOT reading X-Forwarded-For: anybody can send that header,
-    // so trusting it would hand an attacker a fresh identity per request and
-    // walk straight past the limit. Behind a real proxy this needs that
-    // proxy's own trusted-header handling instead.
+    // Deliberately NOT reading X-Forwarded-For.
     $packed = @inet_pton((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
 
     return $packed === false ? str_repeat("\0", 16) : $packed;
 }
 
 
-/**
- * How many failures inside the window, counted two ways.
- *
- * By IP, which slows one machine working through a list of passwords; and by
- * email, which slows a list of machines all attacking one account. Either
- * hitting the cap is enough to lock.
- */
+/* How many failures inside the window, counted two ways. */
 function login_failures(string $scope, ?string $identity = null): int
 {
     try {
@@ -85,14 +52,13 @@ function login_failures(string $scope, ?string $identity = null): int
     } catch (Throwable $ex) {
         error_log('login_failures: ' . $ex->getMessage());
 
-        // If we cannot tell, assume the worst. A login that fails OPEN
-        // because its own rate limiter broke is the wrong way round.
+        // If we cannot tell, assume the worst.
         return PHP_INT_MAX;
     }
 }
 
 
-/** Writes down an attempt, and prunes the table so it cannot grow for ever. */
+/* Writes down an attempt, and prunes the table so it cannot grow for ever. */
 function login_record(string $scope, bool $succeeded, ?string $identity = null): void
 {
     try {
@@ -101,8 +67,7 @@ function login_record(string $scope, bool $succeeded, ?string $identity = null):
             'INSERT INTO login_attempts (scope, ip, identity, succeeded) VALUES (?, ?, ?, ?)'
         )->execute([$scope, login_client_ip(), $identity, $succeeded ? 1 : 0]);
 
-        // Nothing older than a day is any use to the limiter. Pruned on
-        // write because this project has no cron.
+        // Nothing older than a day is any use to the limiter.
         $pdo->exec('DELETE FROM login_attempts WHERE created_at < (NOW() - INTERVAL 1 DAY)');
     } catch (Throwable $ex) {
         error_log('login_record: ' . $ex->getMessage());
@@ -110,7 +75,7 @@ function login_record(string $scope, bool $succeeded, ?string $identity = null):
 }
 
 
-/** Minutes until the oldest failure in the window ages out. */
+/* Minutes until the oldest failure in the window ages out. */
 function login_lock_minutes_left(string $scope, ?string $identity = null): int
 {
     try {
@@ -134,13 +99,7 @@ function login_lock_minutes_left(string $scope, ?string $identity = null): int
 
 /* --------------------------------------------------------------- the account */
 
-/**
- * The signed-in customer, or null.
- *
- * Read from the database each request rather than cached in the session, so
- * that a changed name or phone number takes effect immediately and a deleted
- * account stops working at once. Memoised per request, so it is one query.
- */
+/* The signed-in customer, or null. */
 function current_user(): ?array
 {
     static $user = null;
@@ -176,20 +135,14 @@ function current_user(): ?array
 }
 
 
-/** Signed in? */
+/* Signed in? */
 function logged_in(): bool
 {
     return current_user() !== null;
 }
 
 
-/**
- * Creates an account and signs it in.
- *
- * Returns ['ok' => bool, 'errors' => ['field' => 'message', ...]].
- * Field-keyed, so the form can put each message beside the input it belongs
- * to rather than printing one line at the top.
- */
+/* Creates an account and signs it in. */
 function register_account(string $name, string $email, string $phone, string $password, string $confirm): array
 {
     $errors = [];
@@ -206,8 +159,7 @@ function register_account(string $name, string $email, string $phone, string $pa
         $errors['email'] = 'Enter a valid email address.';
     }
 
-    // The kitchen rings this number, so it is required — same rule as the
-    // order form used before accounts existed.
+    // The kitchen rings this number, so it is required.
     if (normalise_phone($phone) === null) {
         $errors['phone'] = 'Enter a phone number we can reach you on, like 0712 345 678.';
     }
@@ -215,8 +167,7 @@ function register_account(string $name, string $email, string $phone, string $pa
     if (strlen($password) < ACCOUNT_MIN_PASSWORD) {
         $errors['password'] = 'Use at least ' . ACCOUNT_MIN_PASSWORD . ' characters.';
     } elseif (strlen($password) > 200) {
-        // bcrypt silently ignores anything past 72 bytes; a huge value is
-        // also a cheap way to make the server do pointless work.
+        // bcrypt silently ignores anything past 72 bytes.
         $errors['password'] = 'That password is too long.';
     }
 
@@ -239,10 +190,7 @@ function register_account(string $name, string $email, string $phone, string $pa
         $userId = (int) $pdo->lastInsertId();
 
     } catch (PDOException $ex) {
-        // 23000 is the integrity-constraint family, and the only unique key
-        // on this table is the email. Letting the DATABASE decide this closes
-        // the gap a "SELECT then INSERT" leaves open, where two people
-        // registering at once could both find the address free.
+        // 23000 is the integrity-constraint family.
         if ($ex->getCode() === '23000') {
             return ['ok' => false, 'errors' => [
                 'email' => 'There is already an account with that email. Sign in instead.',
@@ -256,22 +204,14 @@ function register_account(string $name, string $email, string $phone, string $pa
 
     sign_in_user($userId);
 
-    // Any order already placed with this address becomes theirs, so a
-    // customer who ordered before accounts existed does not lose their
-    // history the moment they register.
+    // Any order already placed with this address becomes theirs.
     claim_orders_for_user($userId, $email);
 
     return ['ok' => true, 'errors' => []];
 }
 
 
-/**
- * Checks an email and password and signs in.
- *
- * Returns ['ok' => bool, 'error' => ?string]. One message, not a field map:
- * saying WHICH half was wrong tells an attacker whether an address has an
- * account here.
- */
+/* Checks an email and password and signs in. */
 function login_account(string $email, string $password): array
 {
     $email = strtolower(trim($email));
@@ -296,8 +236,6 @@ function login_account(string $email, string $password): array
     }
 
     // Verified even when there is no such account, against a throwaway hash.
-    // Returning early instead would make a missing address answer measurably
-    // faster than a wrong password, which is a way to harvest addresses.
     $hash = $user['password_hash']
         ?? '$2y$12$usuallyinvalidhashusedonlytoburnthesametimeasarealone00';
 
@@ -315,11 +253,10 @@ function login_account(string $email, string $password): array
 }
 
 
-/** Puts a user into the session, safely. */
+/* Puts a user into the session, safely. */
 function sign_in_user(int $userId): void
 {
-    // A new session id, so an id an attacker managed to fix beforehand is not
-    // the one that ends up signed in.
+    // A new session id, so an id an attacker managed to fix beforehand is not the one that.
     session_regenerate_id(true);
 
     $_SESSION['user_id'] = $userId;
@@ -333,24 +270,17 @@ function sign_in_user(int $userId): void
 }
 
 
-/** Signs out, leaving the rest of the session alone. */
+/* Signs out, leaving the rest of the session alone. */
 function logout_account(): void
 {
     unset($_SESSION['user_id']);
 
-    // The "orders this browser placed" list goes too: on a shared machine the
-    // next person must not inherit a way into somebody else's order.
+    // The "orders this browser placed" list goes too.
     unset($_SESSION['my_orders'], $_SESSION['unlocked_orders']);
 }
 
 
-/**
- * Attaches unowned orders with this email address to an account.
- *
- * Matches on email only, and only where user_id IS NULL, so it can never
- * take an order that already belongs to somebody else. Returns how many it
- * claimed, so the page can say so.
- */
+/* Attaches unowned orders with this email address to an account. */
 function claim_orders_for_user(int $userId, string $email): int
 {
     try {
@@ -361,8 +291,7 @@ function claim_orders_for_user(int $userId, string $email): int
 
         $claimed = $stmt->rowCount();
 
-        // Remembered for the next page to mention. A brand new account that
-        // already has history needs explaining, or it looks like a bug.
+        // Remembered for the next page to mention.
         if ($claimed > 0) {
             $_SESSION['claimed_orders'] = $claimed;
         }
@@ -378,12 +307,7 @@ function claim_orders_for_user(int $userId, string $email): int
 
 /* ------------------------------------------------------------- their orders */
 
-/**
- * Every order belonging to an account, newest first, with its dishes.
- *
- * This is what replaced the reference-and-code lookup: being signed in IS
- * the proof, so there is nothing to type.
- */
+/* Every order belonging to an account, newest first, with its dishes. */
 function orders_for_user(int $userId, int $limit = 40): array
 {
     $stmt = getPDO()->prepare(
@@ -401,7 +325,8 @@ function orders_for_user(int $userId, int $limit = 40): array
     $holes = implode(',', array_fill(0, count($ids), '?'));
 
     $lines = getPDO()->prepare(
-        "SELECT i.order_id, m.name, i.quantity, i.unit_price
+        // m.image comes along so the list can show the dish, not just name it.
+        "SELECT i.order_id, m.name, m.image, m.image_alt, i.quantity, i.unit_price
            FROM order_items i JOIN menu_items m ON m.id = i.menu_item_id
           WHERE i.order_id IN ($holes)
           ORDER BY m.name"
@@ -421,18 +346,7 @@ function orders_for_user(int $userId, int $limit = 40): array
 }
 
 
-/**
- * May the person asking read this order?
- *
- * Three ways in, checked against the DATABASE rather than the session's
- * memory of what it has seen:
- *
- *   1. it belongs to their account
- *   2. this browser placed it a moment ago (so the payment page works
- *      before a guest has finished registering)
- *   3. they unlocked it with a one-time code — the path kept for orders
- *      taken before accounts existed, which have no user_id to match
- */
+/* May the person asking read this order? */
 function may_view_order(array $order): bool
 {
     $user = current_user();
@@ -445,4 +359,127 @@ function may_view_order(array $order): bool
 
     return in_array($reference, $_SESSION['my_orders'] ?? [], true)
         || in_array($reference, $_SESSION['unlocked_orders'] ?? [], true);
+}
+
+
+/* PART 2 — THE STAFF DOOR */
+
+/* How many wrong tries from one address before it is locked out, and for how long. */
+const STAFF_MAX_TRIES   = 6;
+const STAFF_LOCK_MINUTES = 15;
+
+
+/* The configured bcrypt hash, or '' if the site has not been set up. */
+function staff_password_hash(): string
+{
+    $conf = secrets();
+
+    return (string) ($conf['staff']['password_hash'] ?? '');
+}
+
+
+/* Has somebody set a password at all? */
+function staff_is_configured(): bool
+{
+    return staff_password_hash() !== '';
+}
+
+
+/* Is a password demanded before the kitchen screen opens? */
+function staff_auth_required(): bool
+{
+    return (bool) (secrets()['staff']['require_password'] ?? true);
+}
+
+
+/* Is this request from a machine we would help with setup instructions? */
+function staff_request_is_local(): bool
+{
+    $host = explode(':', strtolower((string) ($_SERVER['HTTP_HOST'] ?? '')))[0];
+
+    return in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+        || str_ends_with($host, '.localhost')
+        || str_ends_with($host, '.test');
+}
+
+
+/* May the caller see the board right now? */
+function staff_logged_in(): bool
+{
+    // The password has been switched off, so everybody may.
+    if (!staff_auth_required()) {
+        return true;
+    }
+
+    if (empty($_SESSION['staff_since'])) {
+        return false;
+    }
+
+    // A forgotten tablet on a counter should not stay signed in all night.
+    if (time() - (int) $_SESSION['staff_since'] > 8 * 3600) {
+        staff_logout();
+        return false;
+    }
+
+    return true;
+}
+
+
+/* Rate limiting lives in Part 1 above and is shared with the customer door. */
+
+/* Locked out? */
+function staff_is_locked_out(): bool
+{
+    return login_failures('staff') >= STAFF_MAX_TRIES;
+}
+
+
+/* Minutes until the lockout lifts, for the message shown. */
+function staff_lock_minutes_left(): int
+{
+    return login_lock_minutes_left('staff');
+}
+
+
+
+/* Checks a typed password and signs in if it is right. */
+function staff_login(string $typed): array
+{
+    if (!staff_is_configured()) {
+        return ['ok' => false, 'error' => 'This screen has not been set up yet.'];
+    }
+
+    if (staff_is_locked_out()) {
+        return ['ok' => false, 'error' => sprintf(
+            'Too many wrong tries. Try again in %d minutes.', staff_lock_minutes_left()
+        )];
+    }
+
+    // password_verify does the constant-time comparison itself.
+    if (!password_verify($typed, staff_password_hash())) {
+        login_record('staff', false);
+
+        $left = STAFF_MAX_TRIES - login_failures('staff');
+
+        return ['ok' => false, 'error' => $left > 0
+            ? sprintf('That is not the right password. %d %s left.',
+                      $left, $left === 1 ? 'try' : 'tries')
+            : 'That is not the right password.'];
+    }
+
+    login_record('staff', true);
+
+    // A new session id on sign-in.
+    session_regenerate_id(true);
+
+    $_SESSION['staff_since'] = time();
+
+    return ['ok' => true, 'error' => null];
+}
+
+
+/* Signs out, without disturbing the customer-facing parts of the session. */
+function staff_logout(): void
+{
+    unset($_SESSION['staff_since']);
 }

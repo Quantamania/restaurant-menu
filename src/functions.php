@@ -1,39 +1,53 @@
 <?php
-/* ===========================================================================
- * The toolbox: the database connection and the small helper functions that
- * every page uses. Loaded by src/setup.php.
- * =========================================================================== */
+/* The toolbox: the database connection and the small helper functions that */
 
 
-/**
- * Connects to the MySQL database and hands back the connection.
- *
- * The first call opens the connection; every call after that reuses the same
- * one, so a page only ever connects once. Settings come from src/config.php.
- */
+/* src/config.php, read once. */
+function config(): array
+{
+    static $conf = null;
+
+    if ($conf === null) {
+        $file = __DIR__ . '/config.php';
+
+        // Missing is not fatal.
+        $conf = is_file($file) ? require $file : [];
+    }
+
+    return $conf;
+}
+
+
+/* Connects to the MySQL database and hands back the connection. */
 function getPDO(): PDO
 {
     static $pdo = null;
 
     if ($pdo === null) {
-        $file = __DIR__ . '/config.php';
+        $c = config()['database'] ?? [];
 
-        if (!is_file($file)) {
-            throw new RuntimeException('Copy src/config.sample.php to src/config.php');
+        // The environment wins, so a host that has no config file can still connect.
+        $host = getenv('DB_HOST') ?: ($c['host']   ?? '');
+        $name = getenv('DB_NAME') ?: ($c['dbname'] ?? '');
+        $user = getenv('DB_USER') ?: ($c['user']   ?? '');
+        $pass = getenv('DB_PASS') ?: ($c['pass']   ?? '');
+
+        if ($host === '' || $name === '') {
+            throw new RuntimeException(
+                'No database configured. Copy src/config.example.php to '
+              . 'src/config.php, or set DB_HOST / DB_NAME / DB_USER / DB_PASS.'
+            );
         }
 
-        $c   = require $file;
-        $dsn = "mysql:host={$c['host']};dbname={$c['dbname']};charset=utf8mb4";
+        $dsn = "mysql:host={$host};dbname={$name};charset=utf8mb4";
 
-        $pdo = new PDO($dsn, $c['user'], $c['pass'], [
+        $pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
 
-        // Make the database agree with PHP about what time it is. Otherwise a
-        // server in one zone and a database in another disagree about when an
-        // order was placed, and created_at drifts from the restaurant's clock.
+        // Make the database agree with PHP about what time it is.
         $pdo->exec("SET time_zone = '" . (new DateTimeImmutable())->format('P') . "'");
     }
 
@@ -41,25 +55,14 @@ function getPDO(): PDO
 }
 
 
-/**
- * Makes text safe to print inside a page.
- *
- * ALWAYS use this around anything that came from the database or from a
- * visitor: <?= e($item['name']) ?>. Without it, someone could type HTML or
- * JavaScript into the reservation form and have it run on your page.
- */
+/* Makes text safe to print inside a page. */
 function e(?string $s): string
 {
     return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 
-/**
- * Returns this visitor's secret form token, creating one if they have none.
- *
- * Every form must print it in a hidden field. It proves the form was really
- * sent from our own page, and not from somebody else's.
- */
+/* Returns this visitor's secret form token, creating one if they have none. */
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf'])) {
@@ -70,9 +73,7 @@ function csrf_token(): string
 }
 
 
-/**
- * Checks the token that came back with a submitted form.
- */
+/* Checks the token that came back with a submitted form. */
 function csrf_valid(?string $token): bool
 {
     return !empty($_SESSION['csrf']) && is_string($token)
@@ -80,20 +81,10 @@ function csrf_valid(?string $token): bool
 }
 
 
-/* ---------------------------------------------------------------------------
- * Tables and availability
- * --------------------------------------------------------------------------- */
+/* Tables and availability */
 
 
-/**
- * Every table in the restaurant, with a flag saying whether it is already
- * booked for the date and time given.
- *
- * It asks the database for all active tables, and LEFT JOINs the reservations
- * for that one slot. If the join finds a reservation, the table is taken.
- *
- * Returns a list of rows: id, label, seats, area, is_taken.
- */
+/* Every table in the restaurant, with a flag saying whether it is already booked for t */
 function getTablesWithAvailability(string $date, string $time): array
 {
     $stmt = getPDO()->prepare(
@@ -113,10 +104,7 @@ function getTablesWithAvailability(string $date, string $time): array
 }
 
 
-/**
- * One table by its id, or null if it does not exist or is switched off.
- * Used to re-check the chosen table on the server before saving.
- */
+/* One table by its id, or null if it does not exist or is switched off. */
 function getTable(int $id): ?array
 {
     $stmt = getPDO()->prepare(
@@ -128,14 +116,10 @@ function getTable(int $id): ?array
 }
 
 
-/* ---------------------------------------------------------------------------
- * Pre-ordering
- * --------------------------------------------------------------------------- */
+/* Pre-ordering */
 
 
-/**
- * Every dish that can be ordered, grouped by category name.
- */
+/* Every dish that can be ordered, grouped by category name. */
 function getOrderableMenu(): array
 {
     $rows = getPDO()->query(
@@ -155,20 +139,7 @@ function getOrderableMenu(): array
 }
 
 
-/**
- * Turns the quantity boxes from the form into lines we can save.
- *
- * $quantities arrives from the browser and cannot be trusted, so the price of
- * every dish is looked up in the database here. Nothing a visitor types is
- * ever used as a price.
- *
- * If a dish has sold out since the page was drawn it cannot be ordered — but
- * it is NOT dropped quietly, because the customer would be charged less than
- * they asked for and find out at the counter. It comes back under 'dropped'
- * so order.php can say which dish went and make them look again.
- *
- * Returns ['lines' => [...], 'subtotal' => float, 'dropped' => ['name', ...]].
- */
+/* Turns the quantity boxes from the form into lines we can save. */
 function buildOrderLines(array $quantities, int $maxPerDish = 20): array
 {
     $wanted = [];
@@ -231,18 +202,7 @@ function buildOrderLines(array $quantities, int $maxPerDish = 20): array
 }
 
 
-/**
- * Makes the short code a customer quotes on the phone, like MD-7K3QB2.
- *
- * Letters that are easy to confuse when read aloud or written down (I, O, 0,
- * 1) are left out. It retries if the code is already taken; the UNIQUE key on
- * orders.reference is what makes that impossible to get wrong.
- *
- * The prefix is MD for Maridadi. Orders taken before the restaurant was
- * renamed carry the old ZW- and keep it: a reference is looked up as an
- * exact string, so an old one still resolves. Rewriting them would break
- * every receipt and confirmation email already in a customer's inbox.
- */
+/* Makes the short code a customer quotes on the phone, like MD-7K3QB2. */
 function makeOrderReference(): string
 {
     $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -264,10 +224,7 @@ function makeOrderReference(): string
 }
 
 
-/**
- * Looks an order up by its reference, with the dishes on it.
- * Returns null if there is no such order.
- */
+/* Looks an order up by its reference, with the dishes on it. */
 function getOrderByReference(string $reference): ?array
 {
     $stmt = getPDO()->prepare('SELECT * FROM orders WHERE reference = ?');
@@ -289,15 +246,7 @@ function getOrderByReference(string $reference): ?array
     return $order;
 }
 
-/**
- * The wordmark: the restaurant's name in capitals, with the first E drawn as
- * three stacked bars instead of a letter — the "menu lines" idea from the
- * logo sketch.
- *
- * The bars are spans, not a character, so the shape is identical in every
- * browser whatever font is loaded. The whole thing carries an aria-label so
- * a screen reader still hears the plain name.
- */
+/* The wordmark: the restaurant's name in capitals, with the first E drawn as three sta */
 function wordmark(string $name, string $class = ''): string
 {
     $upper = mb_strtoupper($name);
@@ -319,18 +268,7 @@ function wordmark(string $name, string $class = ''): string
 }
 
 
-/**
- * The logo: the bitten box mark and the wordmark beside it.
- *
- * Lifted out of header.php so the kitchen screen can show the same lockup
- * without the markup being copied. Two copies would drift apart, and the
- * SVG mask ids would collide.
- *
- * $idSuffix makes the mask ids unique. An id has to be unique in a document,
- * and a masked shape that points at a duplicate id renders against whichever
- * one the browser found first — so a second lockup on one page would quietly
- * lose its bite.
- */
+/* The logo: the bitten box mark and the wordmark beside it. */
 function brand_lockup(string $name, string $class = '', string $idSuffix = ''): string
 {
     $bite = 'brand-bite' . ($idSuffix !== '' ? '-' . $idSuffix : '');
@@ -339,10 +277,7 @@ function brand_lockup(string $name, string $class = '', string $idSuffix = ''): 
 
     return '<a class="brand ' . e($class) . '" href="index.php" aria-label="' . e($name) . '">'
          . '<span class="brand__box-wrap">'
-         // The square is drawn twice: an outline, then the face 1.6 units
-         // inside it with a correspondingly wider bite, so the outline
-         // follows the curve of the bite instead of cutting a square corner
-         // across it the way a CSS ring would.
+         // The square is drawn twice.
          . '<svg class="brand__box" viewBox="0 0 64 64" aria-hidden="true" focusable="false">'
          . '<mask id="' . $bite . '">'
          . '<rect width="64" height="64" fill="#fff"/>'
@@ -363,20 +298,7 @@ function brand_lockup(string $name, string $class = '', string $idSuffix = ''): 
 }
 
 
-/**
- * The trail of links showing where you are in the site.
- *
- * $trail is a list of [label, href] pairs, in order from the home page
- * inwards. The LAST entry is where you are now, so its href is ignored and
- * it is rendered as plain text — a link to the page you are already on is
- * noise, and a screen reader announces it as somewhere to go.
- *
- *     breadcrumbs([['Home', 'index.php'], ['Menu', 'menu.php'], ['Order', null]])
- *
- * Marked up as a <nav> wrapping an ordered list, because the order is the
- * meaning, and with aria-current="page" on the last item so assistive
- * software can say "you are here" rather than leaving it to the styling.
- */
+/* The trail of links showing where you are in the site. */
 function breadcrumbs(array $trail): string
 {
     if (count($trail) < 2) {
@@ -395,7 +317,6 @@ function breadcrumbs(array $trail): string
             : '<a class="crumbs__link" href="' . e($href) . '">' . e($label) . '</a>';
 
         // The separator is decoration, so it is hidden from a screen reader
-        // — otherwise every step is read out as "slash".
         $sep = $isHere ? '' : '<span class="crumbs__sep" aria-hidden="true">/</span>';
 
         $items .= '<li class="crumbs__item">' . $inner . $sep . '</li>';

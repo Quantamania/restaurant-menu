@@ -1,26 +1,5 @@
 <?php
-/* ===========================================================================
- * ORDER TRACKING — "my orders"
- *
- * Signed in, this is a list of your orders; with ?ref= it is one of them in
- * full. Being signed in IS the proof, so there is nothing to type.
- *
- * WHAT THIS REPLACED
- *
- * It used to ask for a reference and then text a six-digit code to the phone
- * on the order. That worked, but it made the commonest thing a customer does
- * — check on their food — the most laborious: find the reference, wait for a
- * text, type it in, and do it again tomorrow.
- *
- * The code path is still here, for exactly one case: orders taken BEFORE
- * accounts existed have no user_id, so there is no account to match them
- * against. Registering with the same email address claims them automatically
- * (see claim_orders_for_user), which is the normal way those are recovered;
- * the code is the fallback when the address differs.
- *
- * Part 1 (PHP)  - who is asking, and which order(s) they may see
- * Part 2 (HTML) - the list, or the one order in plain words
- * =========================================================================== */
+/* ORDER TRACKING — "my orders" */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -54,9 +33,7 @@ try {
     if ($reference !== '' && !$found) {
         $error = 'We cannot find an order with that reference. Please check it and try again.';
     } elseif ($found && may_view_order($found)) {
-        // may_view_order() asks the DATABASE whether this order belongs to
-        // the signed-in account, rather than trusting what the session
-        // remembers having seen.
+        // may_view_order() asks the DATABASE whether this order belongs to the signed-in account.
         $order = $found;
     }
 
@@ -72,15 +49,12 @@ try {
 
             if ($result['ok']) {
                 $sentVia = $channel;
-                // Shown back partly hidden, so you can tell WHICH number or
-                // address it went to without the page publishing it to
-                // whoever typed the reference.
+                // Shown back partly hidden.
                 $sentTo = $channel === 'sms'
                     ? mask_tail((string) $found['phone'], 3)
                     : mask_email((string) $found['email']);
 
-                // Remembered so a page reload keeps showing the code box
-                // rather than dropping back to step one.
+                // Remembered so a page reload keeps showing the code box rather than dropping back to.
                 $_SESSION['code_sent_for'] = $reference;
             } else {
                 $error = $result['error'];
@@ -99,8 +73,7 @@ try {
                 $_SESSION['unlocked_orders'][] = $reference;
                 unset($_SESSION['code_sent_for']);
 
-                // Redirect so the code is not sitting in a form that a
-                // refresh would re-submit.
+                // Redirect so the code is not sitting in a form that a refresh would re-submit.
                 header('Location: order-status.php?ref=' . urlencode($reference));
                 exit;
             }
@@ -108,6 +81,29 @@ try {
             $error   = $result['error'];
             $sentVia = 'sms';
             $sentTo  = null;   // keep the code box up, without re-announcing
+        }
+    }
+
+    /* The customer cancelling their own order.
+     *
+     * Goes through the same move_order() the kitchen uses, so the board
+     * sees it immediately, the change is written with its history row in
+     * one transaction, and the usual cancellation email and SMS go out.
+     * The actor is 'customer', so the kitchen's history says who did it. */
+    if ($order && ($_POST['action'] ?? null) === 'cancel-order') {
+        if (!csrf_valid($_POST['csrf'] ?? null)) {
+            $error = 'Your session expired. Please try again.';
+        } elseif (!in_array($order['status'], ['new', 'preparing', 'ready'], true)) {
+            $error = 'That order can no longer be cancelled.';
+        } else {
+            $result = move_order($order['reference'], 'cancelled', 'customer');
+
+            if ($result['ok']) {
+                header('Location: order-status.php?ref=' . urlencode($order['reference']) . '&cancelled=1');
+                exit;
+            }
+
+            $error = $result['error'];
         }
     }
 
@@ -124,10 +120,7 @@ try {
 
 /* --------------------------------------------------------------- the words */
 
-// Each kitchen stage, said twice: a short label for the tracker, and a line
-// explaining what it means for the person reading. The old page showed
-// "preparing" and left you to work out whether that meant you should set
-// off — so the explanation is the point, not decoration.
+// Each kitchen stage, said twice.
 $steps = [
     'new' => [
         'label' => 'Order received',
@@ -147,7 +140,7 @@ $steps = [
     ],
 ];
 
-/** Hides the middle of a phone number: 0712345678 -> *******678 */
+/* Hides the middle of a phone number: 0712345678 -> *******678 */
 function mask_tail(string $value, int $keep = 3): string
 {
     $digits = preg_replace('/\D+/', '', $value);
@@ -159,7 +152,7 @@ function mask_tail(string $value, int $keep = 3): string
     return str_repeat('*', strlen($digits) - $keep) . substr($digits, -$keep);
 }
 
-/** k****n@gmail.com — enough to recognise, not enough to harvest. */
+/* k****n@gmail.com — enough to recognise, not enough to harvest. */
 function mask_email(string $value): string
 {
     [$name, $domain] = array_pad(explode('@', $value, 2), 2, '');
@@ -175,15 +168,6 @@ function mask_email(string $value): string
 }
 
 // KEEPING THE TWO PAGES IN STEP
-//
-// The kitchen writes orders.status; this page reads it. They are already the
-// same single source of truth — what was missing is that the customer had to
-// reload to notice. While an order is still live the page refreshes itself,
-// the same way the kitchen board does, so pressing "Mark ready" on a tablet
-// shows up here within the minute without anybody touching anything.
-//
-// Only while it is live: a finished or cancelled order will never change
-// again, and reloading it for ever is wasted work on both ends.
 $liveOrder = $order !== null
           && !in_array($order['status'], ['completed', 'cancelled'], true);
 
@@ -209,8 +193,7 @@ require __DIR__ . '/../src/header.php';
         $paid      = $order['payment_status'] === 'paid';
         $payment   = latest_payment((int) $order['id']);
 
-        // The one sentence that answers "so what now?". Everything else on
-        // the page is detail underneath it.
+        // The one sentence that answers "so what now?".
         if ($cancelled) {
             $headline = 'This order was cancelled';
             $nextStep = 'Nothing is coming, and you have not been charged. Call us if that is wrong.';
@@ -258,6 +241,14 @@ require __DIR__ . '/../src/header.php';
           </li>
         </ul>
       </header>
+
+      <?php if (isset($_GET['cancelled'])): ?>
+        <p class="msg msg--ok">
+          <span class="msg__icon" aria-hidden="true">&check;</span>
+          <span>Your order is cancelled and the kitchen has been told. You
+                have not been charged.</span>
+        </p>
+      <?php endif; ?>
 
       <?php if (isset($_GET['paid'])): ?>
         <p class="msg msg--ok">
@@ -392,6 +383,45 @@ require __DIR__ . '/../src/header.php';
 
       </div>
 
+      <?php if (in_array($order['status'], ['new', 'preparing', 'ready'], true)): ?>
+        <?php if (($_GET['cancel'] ?? '') === $order['reference']): ?>
+
+          <!-- Two presses, like the kitchen's delete. The question names the
+               order, so there is no chance of cancelling the wrong one. -->
+          <div class="cancelbox">
+            <p class="cancelbox__ask">
+              Cancel <strong><?= e($order['reference']) ?></strong>?
+              <?php if ($order['status'] !== 'new'): ?>
+                The kitchen has already started this one — please ring
+                <?= e($site['phone']) ?> as well so they can stop.
+              <?php endif; ?>
+              <?php if ($order['payment_status'] === 'paid'): ?>
+                You have paid, so we will arrange your refund.
+              <?php endif; ?>
+            </p>
+            <div class="cancelbox__acts">
+              <form method="post" action="order-status.php">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="reference" value="<?= e($order['reference']) ?>">
+                <button class="button button--danger" type="submit" name="action" value="cancel-order">
+                  Yes, cancel it
+                </button>
+              </form>
+              <a class="button button--ghost"
+                 href="order-status.php?ref=<?= urlencode($order['reference']) ?>">Keep it</a>
+            </div>
+          </div>
+
+        <?php else: ?>
+          <p class="cancelline">
+            Changed your mind?
+            <a href="order-status.php?ref=<?= urlencode($order['reference']) ?>&amp;cancel=<?= urlencode($order['reference']) ?>">
+              Cancel this order
+            </a>
+          </p>
+        <?php endif; ?>
+      <?php endif; ?>
+
       <p class="status-again">
         <a class="button button--small" href="order.php">Order something else</a>
         <a class="button button--small button--ghost" href="menu.php">Back to the menu</a>
@@ -444,49 +474,116 @@ require __DIR__ . '/../src/header.php';
 
       <?php else: ?>
 
+        <p class="mylist__hint">
+          <?= count($myOrders) === 1
+              ? 'Tap the order to see what was in it.'
+              : 'Your newest order is open. Tap any other to see what was in it.' ?>
+        </p>
+
         <ul class="mylist">
-          <?php foreach ($myOrders as $row): ?>
+          <?php foreach ($myOrders as $i => $row): ?>
             <?php
               $rowDue  = DateTimeImmutable::createFromFormat(
                             'Y-m-d H:i:s', $row['order_date'] . ' ' . $row['order_time']);
               $rowStep = $steps[$row['status']] ?? null;
               $live    = !in_array($row['status'], ['completed', 'cancelled'], true);
               $rowPaid = $row['payment_status'] === 'paid';
+              $count   = array_sum(array_column($row['items'], 'quantity'));
             ?>
             <li>
-              <!-- The whole row is the link, so it is one easy target on a
-                   phone rather than a small "view" link at the end. -->
-              <a class="myrow<?= $live ? ' myrow--live' : '' ?>"
-                 href="order-status.php?ref=<?= urlencode($row['reference']) ?>">
-                <span class="myrow__main">
-                  <span class="myrow__ref"><?= e($row['reference']) ?></span>
-                  <span class="myrow__dishes">
-                    <?php
-                      $names = array_map(
-                          fn ($l) => $l['quantity'] . '× ' . $l['name'],
-                          $row['items']
-                      );
-                      echo e(implode(', ', $names) ?: 'No dishes');
-                    ?>
+              <!-- A plain <details>: collapsed saves the room, open shows the
+                   food. The newest one starts open because it is the one being
+                   waited on; the rest stay shut until asked for. Native, so it
+                   needs no JavaScript and every order is still in the page for
+                   a browser search to find. -->
+              <details class="myorder<?= $live ? ' myorder--live' : '' ?>"<?= $i === 0 ? ' open' : '' ?>>
+                <summary class="myorder__head">
+                  <span class="myorder__main">
+                    <span class="myorder__ref"><?= e($row['reference']) ?></span>
+                    <span class="myorder__when">
+                      <?= e($rowDue ? $rowDue->format('j M, g:i a') : '—') ?>
+                      &middot; <?= (int) $count ?> <?= $count === 1 ? 'item' : 'items' ?>
+                    </span>
                   </span>
-                </span>
 
-                <span class="myrow__meta">
-                  <span class="myrow__when">
-                    <?= e($rowDue ? $rowDue->format('j M, g:i a') : '—') ?>
+                  <!-- A row of thumbnails, visible while collapsed, so you can
+                       recognise an order without opening it. -->
+                  <span class="myorder__peek" aria-hidden="true">
+                    <?php foreach (array_slice($row['items'], 0, 4) as $line): ?>
+                      <?php
+                        $photo = trim((string) ($line['image'] ?? ''));
+                        $has   = $photo !== '' && is_file(__DIR__ . '/images/' . basename($photo));
+                      ?>
+                      <?php if ($has): ?>
+                        <img class="myorder__thumb" src="images/<?= e(basename($photo)) ?>"
+                             alt="" loading="lazy" width="40" height="40">
+                      <?php else: ?>
+                        <span class="myorder__thumb myorder__thumb--none">
+                          <?= e(mb_strtoupper(mb_substr($line['name'], 0, 1))) ?>
+                        </span>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                    <?php if (count($row['items']) > 4): ?>
+                      <span class="myorder__thumb myorder__thumb--more">
+                        +<?= count($row['items']) - 4 ?>
+                      </span>
+                    <?php endif; ?>
                   </span>
-                  <span class="myrow__total">KSh <?= number_format((float) $row['total'], 0) ?></span>
-                </span>
 
-                <span class="myrow__tags">
-                  <span class="mytag mytag--<?= e($row['status']) ?>">
-                    <?= e($rowStep['label'] ?? ucfirst($row['status'])) ?>
+                  <span class="myorder__tags">
+                    <span class="mytag mytag--<?= e($row['status']) ?>">
+                      <?= e($rowStep['label'] ?? ucfirst($row['status'])) ?>
+                    </span>
+                    <span class="mytag <?= $rowPaid ? 'mytag--paid' : 'mytag--owing' ?>">
+                      <?= $rowPaid ? 'Paid' : 'Unpaid' ?>
+                    </span>
+                    <span class="myorder__total">KSh <?= number_format((float) $row['total'], 0) ?></span>
                   </span>
-                  <span class="mytag <?= $rowPaid ? 'mytag--paid' : 'mytag--owing' ?>">
-                    <?= $rowPaid ? 'Paid' : 'Unpaid' ?>
-                  </span>
-                </span>
-              </a>
+                </summary>
+
+                <div class="myorder__body">
+                  <ul class="mydishes">
+                    <?php foreach ($row['items'] as $line): ?>
+                      <?php
+                        $photo = trim((string) ($line['image'] ?? ''));
+                        $has   = $photo !== '' && is_file(__DIR__ . '/images/' . basename($photo));
+                      ?>
+                      <li class="mydish">
+                        <?php if ($has): ?>
+                          <img class="mydish__photo" src="images/<?= e(basename($photo)) ?>"
+                               alt="<?= e($line['image_alt'] ?: $line['name']) ?>"
+                               loading="lazy" width="64" height="64">
+                        <?php else: ?>
+                          <span class="mydish__photo mydish__photo--none" aria-hidden="true">
+                            <?= e(mb_strtoupper(mb_substr($line['name'], 0, 1))) ?>
+                          </span>
+                        <?php endif; ?>
+                        <span class="mydish__text">
+                          <span class="mydish__name"><?= e($line['name']) ?></span>
+                          <span class="mydish__qty"><?= (int) $line['quantity'] ?> &times; KSh
+                            <?= number_format((float) $line['unit_price'], 0) ?></span>
+                        </span>
+                        <span class="mydish__money">
+                          KSh <?= number_format($line['quantity'] * $line['unit_price'], 0) ?>
+                        </span>
+                      </li>
+                    <?php endforeach; ?>
+                  </ul>
+
+                  <div class="myorder__foot">
+                    <span class="myorder__where">
+                      <?= $row['order_type'] === 'delivery' ? 'Delivery' : 'Collection' ?>
+                      <?php if (!empty($row['address'])): ?>
+                        &middot; <?= e($row['address']) ?>
+                      <?php endif; ?>
+                    </span>
+                    <a class="button button--small"
+                       href="order-status.php?ref=<?= urlencode($row['reference']) ?>">
+                      <?= $live ? 'Track this order' : 'See the full order' ?>
+                    </a>
+                  </div>
+                </div>
+              </details>
             </li>
           <?php endforeach; ?>
         </ul>

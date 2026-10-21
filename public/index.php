@@ -1,13 +1,5 @@
 <?php
-/* ===========================================================================
- * LANDING PAGE
- *
- * The page people arrive on: what we are, where we are, and the three
- * things you can do — read the menu, order food, book a table.
- *
- * Part 1 (PHP)  - a few dishes to tease the menu with
- * Part 2 (HTML) - hero, the three cards, about with the map, hours, closing call
- * =========================================================================== */
+/* LANDING PAGE */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -17,13 +9,7 @@ $dishCount = 0;
 $heroDish  = null;
 
 try {
-    // One dish from each course, so the three chips show the range of the
-    // menu. Taking the three cheapest put two drinks in a row and left the
-    // mains out altogether.
-    //
-    // The pick happens here rather than in SQL because "the cheapest in each
-    // group" needs either a correlated subquery or a GROUP BY that upsets
-    // strict mode — a short loop is easier to read and does the same job.
+    // One dish from each course, so the three chips show the range of the menu.
     $all = getPDO()->query(
         'SELECT i.id, i.name, i.description, i.price, i.image, i.image_alt,
                 c.name AS category_name, c.display_order
@@ -35,8 +21,7 @@ try {
 
     $featured = [];
     foreach ($all as $row) {
-        // the rows arrive cheapest-first within each course, so the first
-        // one seen for a course is the one to show
+        // the rows arrive cheapest-first within each course.
         if (!isset($featured[$row['category_name']])) {
             $featured[$row['category_name']] = $row;
         }
@@ -59,20 +44,17 @@ try {
         $heroDish = $pick->fetch() ?: null;
     }
 } catch (Throwable $ex) {
-    // The landing page must still open if the database is down — it just
-    // shows no dishes. Only the menu page truly needs the database.
+    // The landing page must still open if the database is down — it just shows no dishes.
     error_log($ex->getMessage());
 }
 
-// The map block was added to content.php. Guard it anyway, so an older
-// content.php without it cannot break the page.
+// The map block was added to content.php.
 $map     = $site['map'] ?? null;
 $mapLat  = $map ? (float) $map['lat'] : null;
 $mapLng  = $map ? (float) $map['lng'] : null;
 $mapZoom = $map ? (int) ($map['zoom'] ?? 16) : 16;
 
 // OpenStreetMap wants a small box around the point, not a centre and a zoom.
-// A smaller span = a closer look, so the span shrinks as the zoom goes up.
 $span = 0.01 / max(1, 2 ** ($mapZoom - 14));
 $mapSrc = $map ? sprintf(
     'https://www.openstreetmap.org/export/embed.html?bbox=%F,%F,%F,%F&layer=mapnik&marker=%F,%F',
@@ -141,8 +123,7 @@ require __DIR__ . '/../src/header.php';
       <div class="plate-art">
         <span class="plate-art__ring" aria-hidden="true"></span>
         <?php
-          // the dish named in content.php, or the cheapest one if that name
-          // no longer matches anything on the menu
+          // the dish named in content.php.
           $lead = $heroDish ?? ($featured[0] ?? null);
         ?>
         <?php

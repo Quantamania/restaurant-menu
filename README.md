@@ -125,10 +125,10 @@ your machine.
 Turn them on when you want messages to really go out.
 
 ```bash
-cp src/secrets.example.php src/secrets.php
+cp src/config.example.php src/config.php
 ```
 
-Then edit `src/secrets.php`. It lists every setting with a comment saying
+Then edit `src/config.php`. It lists every setting with a comment saying
 what it is for; the blanks are the ones to fill.
 
 **To send real email through Gmail**, set `driver` to `smtp` and fill in the
@@ -176,7 +176,7 @@ money and someone confirms it at the till. Also put the restaurant's real
 paybill or till number in `src/content.php` under `payment` — it is empty on
 purpose, because a made-up number is somebody else's real account.
 
-Never commit `src/secrets.php`. It is already in `.gitignore`.
+Never commit `src/config.php`. It is already in `.gitignore`.
 
 ### 3.7 Accounts
 
@@ -202,7 +202,7 @@ customer's tracking page never changes.
 
 **On this machine it opens straight onto the board** — no password. That is
 the `'require_password' => false` line in the `staff` block of
-`src/secrets.php`, and the screen carries a standing amber warning while it
+`src/config.php`, and the screen carries a standing amber warning while it
 is off.
 
 Leave it off while you are building. Turn it on before the site has a public
@@ -223,7 +223,7 @@ php tools/staff-password.php
 
 It asks for a password twice, hides it while you type, and prints a line like
 `'password_hash' => '$2y$10$...'`. Paste that into the `staff` block of
-`src/secrets.php`, then reload the page and sign in.
+`src/config.php`, then reload the page and sign in.
 
 The password itself is never stored — only a hash of it. If you forget it, run
 the tool again to set a new one. Six wrong tries locks that device out for
@@ -1061,8 +1061,8 @@ Then start your next task from a fresh branch (back to 8.2).
 not. `.gitignore` already blocks the important ones, but check `git status`
 before you commit:
 
-- `src/config.php` — contains your database password
-- `src/secrets.php` — contains your mail password, API keys and the kitchen password hash
+- `src/config.php` — your database password, mail password, API keys and the kitchen password hash
+- `src/config.php` — contains your mail password, API keys and the kitchen password hash
 - `storage/` — holds generated emails, which contain customers' details
 - Any file with a password, API key, or personal data
 - `.vscode/`, `.idea/`, `Thumbs.db`, `.DS_Store`

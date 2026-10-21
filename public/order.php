@@ -1,25 +1,9 @@
 <?php
-/* ===========================================================================
- * ORDER PAGE
- *
- * Ordering food and booking a table are two separate things. This page only
- * handles food: it saves into the "orders" and "order_items" tables and never
- * touches reservations.
- *
- * Part 1 (PHP)  - if the form was sent, check it and save the order
- * Part 2 (HTML) - the dishes with quantity boxes, then the delivery details
- *
- * Arriving from a dish on the home page (order.php?item=7) starts that dish
- * at a quantity of 1.
- * =========================================================================== */
+/* ORDER PAGE */
 
 require __DIR__ . '/../src/setup.php';
 
-// Ordering needs an account. Checked BEFORE anything is read or written, so
-// there is no half-built order sitting in a session belonging to nobody.
-//
-// ?why=order tells the account page to explain itself rather than just
-// appearing in the way, and ?next brings them straight back here.
+// Ordering needs an account.
 if (!logged_in()) {
     header('Location: account.php?mode=register&next=order.php&why=order');
     exit;
@@ -31,10 +15,7 @@ $pageTitle = 'Order food';
 $crumbs    = [['Home', 'index.php'], ['Menu', 'menu.php'], ['Order food', null]];
 $errors    = [];
 
-// The three contact fields come from the account, so a returning customer
-// does not retype them. They stay editable: "deliver to my sister's" is a
-// real order, and the values are copied onto the order row anyway, so
-// changing them here does not change the account.
+// The three contact fields come from the account.
 $old = ['name' => $me['name'], 'email' => $me['email'], 'phone' => $me['phone'],
         'order_type' => 'collection',
         'address' => '', 'order_date' => date('Y-m-d'),
@@ -85,13 +66,6 @@ $orderTotal  = $order['subtotal'] + $deliveryFee;
 $readyFrom = (new DateTimeImmutable())->modify('+' . (int) $rules['lead_minutes'] . ' minutes');
 
 // Open on a slot the kitchen can actually cook.
-//
-// The default used to be the first slot of the day, which by lunchtime is
-// hours gone — so the form loaded with "11:30 am — too soon" selected, and
-// anyone who did not notice got their order refused on submit for a choice
-// they never made. Only applied when the visitor has not chosen a time
-// themselves; their own pick is never silently moved, it is refused with a
-// message by the validation below.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     foreach ($site['order_times'] as $slot => $label) {
         $slotAt = DateTimeImmutable::createFromFormat(
@@ -115,7 +89,6 @@ if (($_POST['action'] ?? null) === 'order' && !isset($errors['form'])) {
 
     if ($order['dropped']) {
         // Something sold out between drawing the page and pressing the button.
-        // Say so plainly rather than quietly charging for less food.
         $errors['items'] = 'Sorry — ' . implode(', ', $order['dropped'])
                          . ' just became unavailable. Your other dishes are still here;'
                          . ' please check the order and send it again.';
@@ -149,8 +122,7 @@ if (($_POST['action'] ?? null) === 'order' && !isset($errors['form'])) {
         }
     }
 
-    // The slot must be one we actually offer. A value we do not recognise is
-    // refused, not quietly swapped for another time the customer never chose.
+    // The slot must be one we actually offer.
     if (!isset($site['order_times'][$_POST['order_time'] ?? ''])) {
         $errors['order_time'] = 'Choose one of the collection times.';
     }
@@ -159,8 +131,7 @@ if (($_POST['action'] ?? null) === 'order' && !isset($errors['form'])) {
     if (!$date || $date->format('Y-m-d') !== $old['order_date']) {
         $errors['order_date'] = 'Choose a valid date.';
     } elseif (empty($errors['order_time'])) {
-        // Date and time together: the kitchen needs notice, and nobody can
-        // order for a slot that has already gone by.
+        // Date and time together.
         $when = DateTimeImmutable::createFromFormat(
             'Y-m-d H:i:s', $old['order_date'] . ' ' . $old['order_time']
         );
@@ -222,10 +193,7 @@ if (($_POST['action'] ?? null) === 'order' && !isset($errors['form'])) {
                 $line->execute([$orderId, $l['menu_item_id'], $l['quantity'], $l['unit_price']]);
             }
 
-            // The first entry in the order's history, written inside the same
-            // transaction as the order itself. Without it the kitchen screen
-            // shows a timeline that begins halfway through — the first thing
-            // that ever happened to the order would be missing from it.
+            // The first entry in the order's history.
             $pdo->prepare(
                 'INSERT INTO order_events (order_id, from_status, to_status, actor)
                  VALUES (?, NULL, "new", "customer")'
@@ -233,23 +201,16 @@ if (($_POST['action'] ?? null) === 'order' && !isset($errors['form'])) {
 
             $pdo->commit();
 
-            // Remember which orders this visitor placed, so the status page can
-            // show them in full without asking for a code.
+            // Remember which orders this visitor placed.
             $_SESSION['my_orders'][] = $reference;
 
-            // Tell them straight away, BEFORE the payment screen. The
-            // reference is what they need if anything goes wrong while
-            // paying, so it has to reach them even if they close the tab at
-            // the next step. Sending cannot fail the order: notify_* swallows
-            // its own errors into the notifications table.
+            // Tell them straight away, BEFORE the payment screen.
             $placed = getOrderByReference($reference);
             if ($placed) {
                 notify_order_placed($placed);
             }
 
-            // On to paying. The order is saved either way — payment is a
-            // separate step that can be retried, abandoned and come back to,
-            // which is why it is its own page with its own URL.
+            // On to paying.
             header('Location: pay.php?ref=' . urlencode($reference));
             exit;
 
@@ -275,7 +236,6 @@ require __DIR__ . '/../src/header.php';
   <div class="wrap">
 
     <div class="section-head">
-      <span class="section-eyebrow">Order ahead</span>
       <h1 class="section-title">Order food</h1>
     </div>
 
@@ -319,21 +279,39 @@ require __DIR__ . '/../src/header.php';
               </a>
             </header>
 
-            <div class="cats" role="group" aria-label="Filter by category">
-              <button class="cat is-on" type="button" data-filter="*">
-                <span class="cat__disc" aria-hidden="true">All</span>
-                <span class="cat__name">Everything</span>
-              </button>
-              <?php foreach ($menu as $categoryName => $items): ?>
-                <button class="cat" type="button" data-filter="<?= e($categoryName) ?>">
-                  <span class="cat__disc" aria-hidden="true">
-                    <?= e(mb_strtoupper(mb_substr($categoryName, 0, 1))) ?>
-                  </span>
-                  <span class="cat__name"><?= e($categoryName) ?></span>
-                  <span class="cat__count"><?= count($items) ?></span>
+              <div class="cats" role="group" aria-label="Filter by category">
+                <button class="cat is-on" type="button" data-filter="*">
+                  <span class="cat__disc cat__disc--all" aria-hidden="true">All</span>
+                  <span class="cat__name">Everything</span>
+                  <span class="cat__count"><?= array_sum(array_map('count', $menu)) ?></span>
                 </button>
-              <?php endforeach; ?>
-            </div>
+
+                <?php foreach ($menu as $categoryName => $items): ?>
+                  <?php
+                    // A course is shown by a dish from it rather than by its initial letter.
+                    $facePhoto = '';
+                    foreach ($items as $item) {
+                        $candidate = trim((string) ($item['image'] ?? ''));
+                        if ($candidate !== '' && is_file(__DIR__ . '/images/' . basename($candidate))) {
+                            $facePhoto = basename($candidate);
+                            break;
+                        }
+                    }
+                  ?>
+                  <button class="cat" type="button" data-filter="<?= e($categoryName) ?>">
+                    <span class="cat__disc" aria-hidden="true">
+                      <?php if ($facePhoto !== ''): ?>
+                        <img class="cat__photo" src="images/<?= e($facePhoto) ?>"
+                             alt="" loading="lazy" width="88" height="88">
+                      <?php else: ?>
+                        <?= e(mb_strtoupper(mb_substr($categoryName, 0, 1))) ?>
+                      <?php endif; ?>
+                    </span>
+                    <span class="cat__name"><?= e($categoryName) ?></span>
+                    <span class="cat__count"><?= count($items) ?></span>
+                  </button>
+                <?php endforeach; ?>
+              </div>
           </section>
 
           <section class="block">

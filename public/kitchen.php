@@ -1,32 +1,5 @@
 <?php
-/* ===========================================================================
- * KITCHEN SCREEN
- *
- * The staff side. This is where an order actually moves:
- *
- *     new  →  preparing  →  ready  →  completed
- *      └──────────┴──────────┴──→  cancelled
- *
- * It is also where the till marks a cash order as paid.
- *
- * NOT A CUSTOMER PAGE
- *
- * It shows every open order's name, phone number and home address on one
- * screen, so it is behind a password and it does not use the site's normal
- * header — no navigation to the menu, no brand lockup, nothing that invites
- * a customer to wander in. It is a tool, laid out to be read at arm's
- * length on a tablet with flour on it.
- *
- * WORKS WITH NO JAVASCRIPT
- *
- * Every action is a form POST, and the screen keeps itself current with a
- * <meta refresh> rather than polling from script. A kitchen tablet left on
- * a shelf must keep updating, and that has to survive JavaScript being off,
- * broken, or still loading.
- *
- * Part 1 (PHP)  - sign in, handle the action, read the board
- * Part 2 (HTML) - the board
- * =========================================================================== */
+/* KITCHEN SCREEN */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -48,8 +21,7 @@ if (($_POST['action'] ?? null) === 'sign-in') {
         $result = staff_login((string) ($_POST['password'] ?? ''));
 
         if ($result['ok']) {
-            // Redirect, so the password is not sitting in a form that a
-            // refresh would re-submit.
+            // Redirect, so the password is not sitting in a form that a refresh would re-submit.
             header('Location: kitchen.php');
             exit;
         }
@@ -87,9 +59,6 @@ if ($signedIn && in_array($_POST['action'] ?? null, ['move', 'paid', 'delete'], 
             $to = (string) ($_POST['to'] ?? '');
 
             // Checked against the known statuses before it goes any further.
-            // move_order() would refuse an unknown value anyway, but its
-            // message quotes what was asked for — and that message should
-            // never be built from an arbitrary posted string.
             if (!in_array($to, ['preparing', 'ready', 'completed', 'cancelled'], true)) {
                 $result = ['ok' => false, 'error' => 'That is not a status an order can be in.'];
             } else {
@@ -108,10 +77,7 @@ if ($signedIn && in_array($_POST['action'] ?? null, ['move', 'paid', 'delete'], 
             $error = $result['error'];
         }
 
-        // Redirect after a successful change (POST-redirect-GET), so the
-        // refresh below cannot replay the action. The message is carried in
-        // the query string rather than the session, because two tablets
-        // share neither.
+        // Redirect after a successful change (POST-redirect-GET).
         if ($result['ok']) {
             header('Location: kitchen.php?scope=' . urlencode((string) ($_POST['scope'] ?? 'open'))
                  . '&done=' . urlencode((string) $done));
@@ -127,19 +93,31 @@ if (isset($_GET['done']) && $done === null) {
 
 /* ----------------------------------------------------------- the board */
 
+// Two views on one screen: the board, and the bookings.
+$view = ($_GET['view'] ?? '') === 'bookings' ? 'bookings' : 'orders';
+
 $scope  = in_array($_GET['scope'] ?? '', ['open', 'today', 'all'], true)
         ? $_GET['scope'] : 'open';
 
-// Deleting is irreversible, so it takes two deliberate presses. The first is
-// a LINK carrying ?confirm=<reference>, which re-renders that one ticket with
-// the real button on it. No script, no dialog: the confirmation is part of
-// the page, so it works the same on a tablet with JavaScript off.
+// The bookings view has its own scopes.
+$bScope = in_array($_GET['bscope'] ?? '', ['upcoming', 'today', 'all'], true)
+        ? $_GET['bscope'] : 'upcoming';
+
+// Deleting is irreversible, so it takes two deliberate presses.
 $confirmDelete = strtoupper(trim((string) ($_GET['confirm'] ?? '')));
 $orders = [];
 
+$bookings      = [];
+$bookingsDue   = 0;
+
 if ($signedIn) {
     try {
-        $orders = kitchen_orders($scope);
+        if ($view === 'bookings') {
+            $bookings = kitchen_reservations($bScope);
+        } else {
+            $orders = kitchen_orders($scope);
+        }
+        $bookingsDue = upcoming_reservation_count();
     } catch (Throwable $ex) {
         error_log($ex->getMessage());
         $error = 'Cannot reach the database right now.';
@@ -176,7 +154,7 @@ $now = new DateTimeImmutable();
     <!-- Keeps a tablet on a shelf current without any script. 45 seconds is
          short enough that a new order is noticed and long enough that it is
          not fighting somebody pressing a button. Only on the live board:
-         refreshing the sign-in page would wipe a half-typed password. -->
+         refreshing the sign-in page would wipe what was half-typed. -->
     <meta http-equiv="refresh" content="45">
   <?php endif; ?>
 
@@ -191,7 +169,7 @@ $now = new DateTimeImmutable();
 
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="kitchen">
+<body class="kitchen<?= $signedIn && $view === 'bookings' ? ' kitchen--bookings' : '' ?>">
 
 <?php if (!$signedIn): ?>
 
@@ -213,10 +191,10 @@ $now = new DateTimeImmutable();
                the visitor's business, and naming the file would be telling
                an attacker exactly what to go looking for. -->
           <ol class="kgate__steps">
-            <li>Copy the template:<br><code>cp src/secrets.example.php src/secrets.php</code></li>
+            <li>Copy the template:<br><code>cp src/config.example.php src/config.php</code></li>
             <li>Make a password:<br><code>php tools/staff-password.php</code></li>
             <li>Paste the line it prints into the <code>staff</code> block of
-                <code>src/secrets.php</code>, then reload this page.</li>
+                <code>src/config.php</code>, then reload this page.</li>
           </ol>
         <?php else: ?>
           <p class="kgate__lead">Ask whoever set up the site.</p>
@@ -274,6 +252,7 @@ $now = new DateTimeImmutable();
     </div>
 
     <!-- Three numbers, big enough to read from across the room. -->
+    <?php if ($view === 'orders'): ?>
     <ul class="ktally">
       <li class="ktally__item ktally__item--new">
         <span class="ktally__n"><?= $counts['new'] ?></span>
@@ -288,19 +267,38 @@ $now = new DateTimeImmutable();
         <span class="ktally__k">Ready</span>
       </li>
     </ul>
+    <?php endif; ?>
 
     <div class="kbar__right">
-      <nav class="kscope" aria-label="Which orders to show">
-        <?php foreach (['open' => 'Open', 'today' => 'Today', 'all' => 'Recent'] as $key => $label): ?>
-          <a class="kscope__link<?= $scope === $key ? ' is-on' : '' ?>"
-             href="kitchen.php?scope=<?= $key ?>"
-             <?= $scope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
-        <?php endforeach; ?>
+      <!-- Orders or bookings. The booking tab carries its own count, so a
+           cook sees there is something coming without opening it. -->
+      <nav class="kviews" aria-label="Orders or bookings">
+        <a class="kview<?= $view === 'orders' ? ' is-on' : '' ?>"
+           href="kitchen.php?scope=<?= e($scope) ?>"
+           <?= $view === 'orders' ? 'aria-current="page"' : '' ?>>Orders</a>
+        <a class="kview<?= $view === 'bookings' ? ' is-on' : '' ?>"
+           href="kitchen.php?view=bookings&amp;bscope=<?= e($bScope) ?>"
+           <?= $view === 'bookings' ? 'aria-current="page"' : '' ?>>Bookings<?php
+           if ($bookingsDue > 0): ?><span class="kview__n"><?= $bookingsDue ?></span><?php endif; ?></a>
+      </nav>
+
+      <nav class="kscope" aria-label="How much to show">
+        <?php if ($view === 'bookings'): ?>
+          <?php foreach (['upcoming' => 'Upcoming', 'today' => 'Today', 'all' => 'All'] as $key => $label): ?>
+            <a class="kscope__link<?= $bScope === $key ? ' is-on' : '' ?>"
+               href="kitchen.php?view=bookings&amp;bscope=<?= $key ?>"
+               <?= $bScope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <?php foreach (['open' => 'Open', 'today' => 'Today', 'all' => 'Recent'] as $key => $label): ?>
+            <a class="kscope__link<?= $scope === $key ? ' is-on' : '' ?>"
+               href="kitchen.php?scope=<?= $key ?>"
+               <?= $scope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </nav>
 
       <?php if (staff_auth_required()): ?>
-        <!-- Only when there is a sign-in to undo. With the password off this
-             button would claim to do something it cannot. -->
         <form method="post" action="kitchen.php" class="kbar__out">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <button class="linkbtn" type="submit" name="action" value="sign-out">Sign out</button>
@@ -312,25 +310,6 @@ $now = new DateTimeImmutable();
   <main class="kmain">
 
     <?= breadcrumbs([['Home', 'index.php'], ['Kitchen', null]]) ?>
-
-    <?php if (!staff_auth_required()): ?>
-      <!-- An open board is never a silent surprise. It says what is exposed
-           and how to close it, and it does not go away — a dismissible
-           warning about leaking customer data would just get dismissed. -->
-      <p class="kopen" role="status">
-        <span class="kopen__tag">No password</span>
-        <span>
-          Anyone who can reach this address can read every customer's name,
-          phone number and address, and can cancel orders.
-          <?php if (!staff_request_is_local()): ?>
-            <strong>This site is not on localhost — close this before real
-            customers use it.</strong>
-          <?php endif; ?>
-          Set <code>'require_password' =&gt; true</code> in
-          <code>src/secrets.php</code> to ask for a password again.
-        </span>
-      </p>
-    <?php endif; ?>
 
     <?php if ($error): ?>
       <p class="msg msg--bad">
@@ -344,7 +323,106 @@ $now = new DateTimeImmutable();
       </p>
     <?php endif; ?>
 
-    <?php if (!$orders): ?>
+    <?php if ($view === 'bookings'): ?>
+
+      <!-- A dark panel, so bookings read as a different kind of thing from
+           the orders board. The cards, the pale-teal labels and the
+           label/value split with a rule between are the home page's
+           opening-hours block, reused. -->
+      <section class="bpanel">
+        <header class="bpanel__head">
+          <h2 class="bpanel__title">
+            Table <span class="bpanel__title-em">bookings</span>
+          </h2>
+          <p class="bpanel__count">
+            <?= $bookingsDue ?> upcoming &middot;
+            <?= count($bookings) ?> shown
+          </p>
+        </header>
+
+        <?php if (!$bookings): ?>
+          <p class="bpanel__empty">
+            <?= $bScope === 'upcoming'
+                ? 'Nothing booked yet. New bookings land here the moment they are made.'
+                : 'No bookings to show.' ?>
+          </p>
+        <?php else: ?>
+
+          <?php
+            $lastDay = null;
+            foreach ($bookings as $b):
+              $when = DateTimeImmutable::createFromFormat(
+                        'Y-m-d H:i:s', $b['reservation_date'] . ' ' . $b['reservation_time']);
+              $day      = $when ? $when->format('Y-m-d') : '';
+              $isToday  = $day === $now->format('Y-m-d');
+              $isPast   = $when && $when < $now;
+              $minsAway = $when ? (int) round(($when->getTimestamp() - $now->getTimestamp()) / 60) : null;
+              $soon     = $minsAway !== null && $minsAway >= 0 && $minsAway <= 90;
+              $party    = (int) ($b['party_size'] ?? 0);
+              $seats    = (int) ($b['table_seats'] ?? 0);
+          ?>
+            <?php if ($day !== $lastDay): ?>
+              <?php if ($lastDay !== null): ?></ul><?php endif; ?>
+              <?php $lastDay = $day; ?>
+              <h3 class="bday">
+                <span class="bday__name"><?= $isToday ? 'Today' : e($when ? $when->format('l') : '—') ?></span>
+                <span class="bday__rule" aria-hidden="true"></span>
+                <span class="bday__date"><?= e($when ? $when->format('j M') : '') ?></span>
+              </h3>
+              <ul class="bgrid">
+            <?php endif; ?>
+
+            <li class="bcard<?= $isPast ? ' bcard--past' : ($soon ? ' bcard--soon' : '') ?>">
+              <p class="bcard__time">
+                <?= e($when ? $when->format('g:i') : '—') ?><span><?= e($when ? $when->format('a') : '') ?></span>
+              </p>
+
+              <p class="bcard__name"><?= e($b['name']) ?></p>
+
+              <!-- Table and party, split by a rule: the home page's
+                   Opens / Closes pair, doing a different job. -->
+              <div class="bcard__span">
+                <span class="bcard__slot">
+                  <span class="bcard__label">Table</span>
+                  <span class="bcard__value"><?= e($b['table_label'] ?? '—') ?></span>
+                  <?php if (!empty($b['table_area'])): ?>
+                    <span class="bcard__sub"><?= e($b['table_area']) ?></span>
+                  <?php endif; ?>
+                </span>
+                <span class="bcard__dash" aria-hidden="true"></span>
+                <span class="bcard__slot">
+                  <span class="bcard__label">Party</span>
+                  <span class="bcard__value"><?= $party ?: '—' ?></span>
+                  <?php if ($seats > 0): ?>
+                    <span class="bcard__sub">of <?= $seats ?> seats</span>
+                  <?php endif; ?>
+                </span>
+              </div>
+
+              <p class="bcard__contact">
+                <?php if (!empty($b['phone'])): ?>
+                  <a href="tel:<?= e(preg_replace('/\s+/', '', $b['phone'])) ?>"><?= e($b['phone']) ?></a>
+                <?php endif; ?>
+                <a href="mailto:<?= e($b['email']) ?>"><?= e($b['email']) ?></a>
+              </p>
+
+              <?php if (!empty($b['message'])): ?>
+                <p class="bcard__note"><?= nl2br(e($b['message'])) ?></p>
+              <?php endif; ?>
+
+              <?php if ($isPast): ?>
+                <span class="bcard__chip bcard__chip--past">Passed</span>
+              <?php elseif ($soon): ?>
+                <span class="bcard__chip bcard__chip--soon">in <?= $minsAway ?> min</span>
+              <?php endif; ?>
+            </li>
+
+          <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </section>
+
+        <?php elseif (!$orders): ?>
 
       <p class="kempty">
         <?= $scope === 'open'
@@ -363,9 +441,7 @@ $now = new DateTimeImmutable();
             $paid     = $order['payment_status'] === 'paid';
             $open     = in_array($order['status'], ['new', 'preparing', 'ready'], true);
 
-            // Late, or due inside the hour. A kitchen needs to know which
-            // ticket is about to be a complaint, and it must not be carried
-            // by colour alone — the chip says the minutes out loud.
+            // Late, or due inside the hour.
             $minsLeft = $due ? (int) round(($due->getTimestamp() - $now->getTimestamp()) / 60) : null;
             $urgency  = 'later';
 

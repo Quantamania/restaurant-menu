@@ -1,16 +1,8 @@
 <?php
-/* ===========================================================================
- * The top of every page: the <head>, the sidebar that carries the navigation,
- * and the opening of the content column beside it.
- *
- * A page sets $pageTitle before including this file, then includes
- * src/footer.php at the very end.
- * =========================================================================== */
+/* The top of every page: the <head>, the sidebar that carries the navigation */
 ?>
 <?php
-  // The landing page wears its navigation across the top; every other page
-  // wears it down the left. Both are the SAME element, so a browser that
-  // supports view transitions slides one into the other between pages.
+  // The landing page wears its navigation across the top.
   $isLanding = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php') === 'index.php';
 ?>
 <!DOCTYPE html>
@@ -42,9 +34,7 @@
   <link rel="stylesheet" href="style.css">
 
   <script>
-    /* Read the hand-off left by the page you came from and mark this document
-       before anything is painted. Without this there is one frame of finished
-       page before the animation starts, and that frame is the flicker. */
+    /* Read the hand-off left by the page you came from and mark this document before anyth */
     (function () {
       try {
         var how = sessionStorage.getItem("nav-morph");
@@ -76,9 +66,7 @@
   // Which page are we on? Used to mark the current item in the navigation.
   $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
 
-  // href, short label, icon, the page it belongs to, and whether it is the
-  // item that carries the marker for that page (the home page has three
-  // anchors, but only one should be flagged as "you are here").
+  // href, short label, icon, the page it belongs to, and whether it is the item that.
   $navItems = [
       ['index.php',        'Home',    'home',     'index.php',        true],
       ['menu.php',         'Menu',    'grid',     'menu.php',         true],
@@ -86,8 +74,7 @@
       ['order.php',        'Order',   'bag',      'order.php',        true],
       ['order-status.php', 'Track',   'truck',    'order-status.php', true],
       ['reserve.php',      'Reserve', 'calendar', 'reserve.php',      true],
-      // Last, and its label changes with who is reading it: "Sign in" is an
-      // instruction to a stranger, "Account" is a place to a customer.
+      // Last, and its label changes with who is reading it.
       ['account.php', logged_in() ? 'Account' : 'Sign in', 'user', 'account.php', true],
   ];
 
@@ -178,9 +165,7 @@
 <div class="shell">
 <main id="main">
 <?php
-  // The trail of where you are. A page sets $crumbs before including this
-  // file; the home page sets nothing, because the root has nowhere to go
-  // back to and breadcrumbs() returns '' for a single entry anyway.
+  // The trail of where you are.
   if (!empty($crumbs)) {
       echo breadcrumbs($crumbs);
   }

@@ -1,45 +1,15 @@
 <?php
-/* ===========================================================================
- * TAKING PAYMENT
- *
- * Two ways to pay:
- *
- *   cash   pay the driver, or pay at the counter. Nothing to charge now, so
- *          the order is simply marked as owing money and the kitchen gets
- *          on with it.
- *   mpesa  an STK push: the customer's phone rings with a PIN prompt.
- *
- * And two drivers behind M-Pesa:
- *
- *   manual  no gateway. The payment is recorded as pending and somebody at
- *           the till confirms it against the message on their own phone.
- *           This is what runs with no credentials — and it is also what a
- *           lot of small Kenyan restaurants genuinely do.
- *   mpesa   Safaricom Daraja. Needs credentials and a public callback URL.
- *
- * WHY NO CARD FORM
- *
- * There is deliberately no "type your card number" screen. Accepting a card
- * number on our own server drags the whole site into PCI scope and means
- * storing, logging and accidentally leaking the most sensitive field a
- * customer has. The right way to add cards is a redirect to the gateway's
- * own hosted page (Flutterwave, Paystack, Stripe Checkout), so the number
- * is typed on their domain and never touches ours. That slots in beside
- * 'mpesa' as another method; it is not a form on this site.
- * =========================================================================== */
-
-require_once __DIR__ . '/mail.php';
-require_once __DIR__ . '/notify.php';
+/* TAKING PAYMENT */
 
 
-/** Is a real gateway configured, or are we confirming by hand? */
+
+/* Is a real gateway configured, or are we confirming by hand? */
 function payments_driver(): string
 {
     $driver = secrets()['payments']['driver'];
     $mpesa  = secrets()['payments']['mpesa'];
 
-    // Claiming the 'mpesa' driver without credentials would fail on every
-    // order. Fall back rather than break the checkout.
+    // Claiming the 'mpesa' driver without credentials would fail on every order.
     if ($driver === 'mpesa' && ($mpesa['consumer_key'] === '' || $mpesa['shortcode'] === '')) {
         return 'manual';
     }
@@ -48,19 +18,7 @@ function payments_driver(): string
 }
 
 
-/**
- * Starts a payment for an order.
- *
- * $method 'cash' or 'mpesa'. $phone only matters for M-Pesa — it is the
- * number the push goes to, which can be somebody else's.
- *
- * Returns ['ok' => bool, 'status' => string, 'error' => ?string,
- *          'payment_id' => ?int].
- *
- * 'status' is where the PAYMENT got to: 'paid', 'pending' or 'failed'. The
- * caller decides what to show from that — it does not need to know which
- * driver ran.
- */
+/* Starts a payment for an order. */
 function start_payment(array $order, string $method, string $phone = ''): array
 {
     $pdo    = getPDO();
@@ -88,8 +46,7 @@ function start_payment(array $order, string $method, string $phone = ''): array
 
             $paymentId = (int) $pdo->lastInsertId();
 
-            // 'unpaid' is the honest state: the food is coming, the money
-            // has not arrived. The till clears it when the cash is taken.
+            // 'unpaid' is the honest state: the food is coming, the money has not arrived.
             $pdo->prepare(
                 'UPDATE orders SET payment_method = "cash", payment_status = "unpaid" WHERE id = ?'
             )->execute([$order['id']]);
@@ -142,8 +99,6 @@ function start_payment(array $order, string $method, string $phone = ''): array
     }
 
     // The row exists and the order says 'pending' before we talk to anyone.
-    // If the push request dies halfway, the pending row is what tells us to
-    // go and look rather than silently losing the attempt.
     if (payments_driver() === 'mpesa') {
         $push = mpesa_stk_push($order, $number, $amount, $paymentId);
 
@@ -153,8 +108,7 @@ function start_payment(array $order, string $method, string $phone = ''): array
                     'error' => $push['error']];
         }
 
-        // Safaricom's answer only means "the prompt was sent". Whether the
-        // customer typed their PIN arrives later, on the callback.
+        // Safaricom's answer only means "the prompt was sent".
         getPDO()->prepare('UPDATE payments SET provider_ref = ? WHERE id = ?')
                 ->execute([$push['checkout_id'], $paymentId]);
     }
@@ -163,13 +117,7 @@ function start_payment(array $order, string $method, string $phone = ''): array
 }
 
 
-/**
- * Marks a payment as settled, and the order with it.
- *
- * Called from two places: the gateway callback, and the till confirming a
- * payment by hand. Both go through here so the two columns can never
- * disagree — and so the receipt is sent exactly once.
- */
+/* Marks a payment as settled, and the order with it. */
 function settle_payment(int $paymentId, ?string $providerRef = null, ?string $note = null): bool
 {
     $pdo = getPDO();
@@ -177,9 +125,7 @@ function settle_payment(int $paymentId, ?string $providerRef = null, ?string $no
     $pdo->beginTransaction();
 
     try {
-        // Locked for the length of the transaction. A provider that fires
-        // its callback twice at the same moment would otherwise have both
-        // copies read 'pending' and both send a receipt.
+        // Locked for the length of the transaction.
         $stmt = $pdo->prepare('SELECT * FROM payments WHERE id = ? FOR UPDATE');
         $stmt->execute([$paymentId]);
         $payment = $stmt->fetch();
@@ -213,8 +159,7 @@ function settle_payment(int $paymentId, ?string $providerRef = null, ?string $no
         return false;
     }
 
-    // Outside the transaction: sending an email is slow and can fail, and
-    // neither should hold a database lock open or undo a real payment.
+    // Outside the transaction.
     try {
         $stmt = $pdo->prepare('SELECT reference FROM orders WHERE id = ?');
         $stmt->execute([$payment['order_id']]);
@@ -235,7 +180,7 @@ function settle_payment(int $paymentId, ?string $providerRef = null, ?string $no
 }
 
 
-/** Records that a payment attempt did not work, and why. */
+/* Records that a payment attempt did not work, and why. */
 function mark_payment_failed(int $paymentId, ?string $why = null): void
 {
     try {
@@ -249,8 +194,7 @@ function mark_payment_failed(int $paymentId, ?string $why = null): void
             ->execute([$why !== null ? mb_substr($why, 0, 255) : null, $paymentId]);
 
         if ($orderId) {
-            // Back to 'failed', not 'unpaid': the customer should see that
-            // something went wrong rather than find a silently empty screen.
+            // Back to 'failed', not 'unpaid'.
             $pdo->prepare('UPDATE orders SET payment_status = "failed" WHERE id = ?')
                 ->execute([$orderId]);
         }
@@ -260,7 +204,7 @@ function mark_payment_failed(int $paymentId, ?string $why = null): void
 }
 
 
-/** The newest payment attempt on an order, or null. */
+/* The newest payment attempt on an order, or null. */
 function latest_payment(int $orderId): ?array
 {
     $stmt = getPDO()->prepare(
@@ -272,12 +216,9 @@ function latest_payment(int $orderId): ?array
 }
 
 
-/* ------------------------------------------------------------ Daraja ------
- * Safaricom's STK push. Only reached when the 'mpesa' driver is configured;
- * with the default 'manual' driver none of this runs.
- * ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------ Daraja ------ */
 
-/** An OAuth token, good for an hour. */
+/* An OAuth token, good for an hour. */
 function mpesa_token(array $conf): ?string
 {
     $base = $conf['env'] === 'live'
@@ -305,12 +246,7 @@ function mpesa_token(array $conf): ?string
 }
 
 
-/**
- * Asks Safaricom to put a PIN prompt on the customer's phone.
- *
- * Returns ['ok' => bool, 'checkout_id' => ?string, 'error' => ?string].
- * A true here means the prompt was SENT, not that it was paid.
- */
+/* Asks Safaricom to put a PIN prompt on the customer's phone. */
 function mpesa_stk_push(array $order, string $number, float $amount, int $paymentId): array
 {
     $conf  = secrets()['payments']['mpesa'];
@@ -325,8 +261,7 @@ function mpesa_stk_push(array $order, string $number, float $amount, int $paymen
         ? 'https://api.safaricom.co.ke'
         : 'https://sandbox.safaricom.co.ke';
 
-    // Their timestamp must be in Nairobi time, and the password is
-    // shortcode + passkey + that same timestamp, base64'd.
+    // Their timestamp must be in Nairobi time.
     $timestamp = (new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi')))->format('YmdHis');
     $password  = base64_encode($conf['shortcode'] . $conf['passkey'] . $timestamp);
 
@@ -335,15 +270,13 @@ function mpesa_stk_push(array $order, string $number, float $amount, int $paymen
         'Password'          => $password,
         'Timestamp'         => $timestamp,
         'TransactionType'   => 'CustomerPayBillOnline',
-        // Daraja rejects decimals. Shillings only — which is what the menu
-        // is priced in anyway.
+        // Daraja rejects decimals.
         'Amount'            => (int) round($amount),
         // Their field wants the number without the +.
         'PartyA'            => ltrim($number, '+'),
         'PartyB'            => $conf['shortcode'],
         'PhoneNumber'       => ltrim($number, '+'),
-        // Our payment id rides along so the callback can find this row
-        // without having to match on amount and phone.
+        // Our payment id rides along so the callback can find this row without having to match.
         'CallBackURL'       => rtrim($conf['callback_url'], '/') . '?p=' . $paymentId,
         'AccountReference'  => mb_substr($order['reference'], 0, 12),
         'TransactionDesc'   => 'Order ' . $order['reference'],
@@ -376,8 +309,7 @@ function mpesa_stk_push(array $order, string $number, float $amount, int $paymen
         return ['ok' => false, 'checkout_id' => null, 'error' => 'M-Pesa sent back something unreadable'];
     }
 
-    // '0' is the only success. Anything else carries their own wording,
-    // which is more useful to a customer than a generic failure.
+    // '0' is the only success.
     if (($body['ResponseCode'] ?? null) !== '0') {
         return ['ok' => false, 'checkout_id' => null,
                 'error' => $body['errorMessage'] ?? $body['ResponseDescription'] ?? 'M-Pesa refused the request'];

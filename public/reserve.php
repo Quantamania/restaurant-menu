@@ -1,21 +1,5 @@
 <?php
-/* ===========================================================================
- * RESERVATION PAGE
- *
- * Part 1 (PHP)  - work out which tables are free, and if the form was sent,
- *                 check every field and save the booking
- * Part 2 (HTML) - the form: when, the table picker, your details
- *
- * Ordering food is a separate feature on its own page — see order.php.
- *
- * The form has TWO buttons:
- *   "Check availability"  (action=check) - just redraws the table picker
- *   "Request a table"     (action=book)  - checks everything and saves
- *
- * The checks in Part 1 are the ones that matter. script.js adds conveniences
- * in the browser, but a visitor can switch JavaScript off, so nothing is
- * trusted until it has been checked here on the server.
- * =========================================================================== */
+/* RESERVATION PAGE */
 
 require __DIR__ . '/../src/setup.php';
 
@@ -38,8 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// A slot we do not recognise falls back to the first one, so the page can
-// always draw a table picker for something.
+// A slot we do not recognise falls back to the first one.
 if (!isset($site['slots'][$old['reservation_time']])) {
     $old['reservation_time'] = array_key_first($site['slots']);
 }
@@ -102,8 +85,7 @@ if ($action === 'book' && !isset($errors['form'])) {
             $errors['table_id'] = "Table {$table['label']} seats {$table['seats']}. Pick a bigger one.";
         }
 
-        // Re-check here, not just in the picker: minutes may have passed since
-        // the page was drawn, and somebody else may have taken it.
+        // Re-check here, not just in the picker.
         foreach ($tables as $t) {
             if ((int) $t['id'] === (int) $table['id'] && $t['is_taken']) {
                 $errors['table_id'] = "Table {$table['label']} has just been booked. Please choose another.";
@@ -141,9 +123,7 @@ if ($action === 'book' && !isset($errors['form'])) {
             exit;
 
         } catch (Throwable $ex) {
-            // 23000 is the database refusing a duplicate: somebody booked this
-            // exact table and slot a moment ago. uniq_table_slot in schema.sql
-            // is what makes that impossible to get wrong.
+            // 23000 is the database refusing a duplicate.
             if ($ex instanceof PDOException && $ex->getCode() === '23000') {
                 $errors['table_id'] = "Table {$table['label']} has just been booked. Please choose another.";
                 $tables = getTablesWithAvailability($old['reservation_date'], $old['reservation_time']);
@@ -165,8 +145,7 @@ $bad = static fn(string $field): string => !empty($errors[$field]) ? ' field--ba
 // Party size, used to grey out tables that are too small.
 $party = (int) $old['party_size'];
 
-// Group the tables by area, so the picker reads like the room rather than
-// like one long list: Banquette, Main floor, Bar, Private room, Terrace.
+// Group the tables by area.
 $byArea = [];
 foreach ($tables as $t) {
     $byArea[$t['area']][] = $t;

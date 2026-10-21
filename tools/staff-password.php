@@ -1,25 +1,7 @@
 <?php
-/* ===========================================================================
- * Makes the password hash for the kitchen screen.
- *
- *     php tools/staff-password.php
- *
- * It asks for a password, hides it while you type, and prints the line to
- * paste into src/secrets.php.
- *
- * WHY A SCRIPT RATHER THAN A ONE-LINER
- *
- * The obvious way is:
- *
- *     php -r 'echo password_hash("hunter2", PASSWORD_DEFAULT);'
- *
- * — and that leaves the password sitting in ~/.bash_history for anyone who
- * later gets a shell on the machine. This reads it from the terminal
- * instead, so it is never written anywhere.
- * =========================================================================== */
+/* Makes the password hash for the kitchen screen. */
 
-// Command line only. If this were ever reachable over HTTP it would be a
-// tool for generating admin credentials, served to the public.
+// Command line only.
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
@@ -28,13 +10,7 @@ if (PHP_SAPI !== 'cli') {
 echo "\n  Kitchen screen password\n";
 echo "  ───────────────────────\n\n";
 
-/**
- * Reads a line from the terminal without echoing it.
- *
- * `stty -echo` is the portable Unix way. It is restored in a finally block
- * so a Ctrl-C part way through does not leave the terminal unable to show
- * what you type for the rest of the session.
- */
+/* Reads a line from the terminal without echoing it. */
 function prompt_hidden(string $label): string
 {
     echo $label;
@@ -69,9 +45,7 @@ function prompt_hidden(string $label): string
 $first = prompt_hidden('  Choose a password:  ');
 
 if (strlen($first) < 10) {
-    // Ten is not arbitrary: this one password guards every customer's name,
-    // phone number and address, and it is typed on a shared tablet that
-    // several people will watch.
+    // Ten is not arbitrary.
     fwrite(STDERR, "\n  Too short — use at least 10 characters.\n\n");
     exit(1);
 }
@@ -83,12 +57,10 @@ if (!hash_equals($first, $again)) {
     exit(1);
 }
 
-// PASSWORD_DEFAULT rather than a named algorithm, so this follows PHP's
-// current recommendation as versions move on. The salt and the cost are
-// stored inside the hash, which is why there is nothing else to keep.
+// PASSWORD_DEFAULT rather than a named algorithm.
 $hash = password_hash($first, PASSWORD_DEFAULT);
 
-echo "\n  Done. Paste this into src/secrets.php, inside the 'staff' block:\n\n";
+echo "\n  Done. Paste this into src/config.php, inside the 'staff' block:\n\n";
 echo "    'password_hash' => '" . $hash . "',\n\n";
 echo "  Or set it in the environment instead:\n\n";
 echo "    STAFF_PASSWORD_HASH='" . $hash . "'\n\n";
