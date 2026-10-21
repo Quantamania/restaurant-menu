@@ -13,6 +13,7 @@
 --   order_events        every status change an order has been through
 --   users               a customer account: ordering requires one
 --   login_attempts      sign-in attempts, for rate limiting both doors
+--   sessions            session data, when the host has no shared disk
 --
 -- Booking a table and ordering food are two separate things. A visitor can
 -- do either on its own, so they have their own tables.
@@ -315,4 +316,13 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 
   INDEX idx_ip   (scope, ip, created_at),
   INDEX idx_who  (scope, identity, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+/* Sessions, when there is no shared disk to keep them on (see src/session.php). */
+CREATE TABLE IF NOT EXISTS sessions (
+  id VARCHAR(128) NOT NULL PRIMARY KEY,
+  payload MEDIUMTEXT NOT NULL,
+  last_seen INT UNSIGNED NOT NULL,
+  INDEX idx_gc (last_seen)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

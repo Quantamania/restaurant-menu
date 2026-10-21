@@ -483,7 +483,22 @@ $now = new DateTimeImmutable();
               <div class="kticket__main">
                 <ul class="kticket__items">
                   <?php foreach ($order['items'] as $line): ?>
+                    <?php
+                      $photo = trim((string) ($line['image'] ?? ''));
+                      $has   = $photo !== '' && is_file(__DIR__ . '/images/' . basename($photo));
+                    ?>
                     <li>
+                      <!-- The photo, so a cook recognises the dish without
+                           reading. The name stays: the photo is a shortcut,
+                           not a replacement. -->
+                      <?php if ($has): ?>
+                        <img class="kticket__thumb" src="images/<?= e(basename($photo)) ?>"
+                             alt="" loading="lazy" width="48" height="48">
+                      <?php else: ?>
+                        <span class="kticket__thumb kticket__thumb--none" aria-hidden="true">
+                          <?= e(mb_strtoupper(mb_substr($line['name'], 0, 1))) ?>
+                        </span>
+                      <?php endif; ?>
                       <span class="kticket__qty"><?= (int) $line['quantity'] ?>&times;</span>
                       <span class="kticket__dish"><?= e($line['name']) ?></span>
                     </li>

@@ -1379,13 +1379,32 @@ body.is-rail-closed .rail-toggle__out { display: block; }
 
 /* the receipt panel: brown, and it follows you down the page ------------- */
 
-@media (min-width: 1150px) {
+/* The card is pinned only when there is genuinely room for it.
+ *
+ * Its fixed furniture — the collection/delivery block, the totals and the
+ * Confirm button — needs about 490px. Forcing it into a short window
+ * squeezed the dish list to 16px and clipped the button out of reach
+ * (measured at 620px tall: card 408px, content 421px). Below 820px of
+ * window the card simply flows with the page instead, so everything stays
+ * reachable by scrolling. */
+@media (min-width: 1150px) and (min-height: 820px) {
   .receipt-panel {
     position: sticky;
     top: var(--sp-4);
-    /* Top to bottom of the window, less a hair of margin at each end. Once */
-    height: calc(100vh - 2 * var(--sp-4));
-    max-height: calc(100vh - 2 * var(--sp-4));
+
+    /* The card must be wholly on screen at EVERY scroll position, including
+       the very top of the page — so its height is the window less the
+       distance it starts from the top, not simply the window.
+     *
+     * That distance is the page heading above the checkout: measured at
+     * 196px, and identical at 1150, 1280, 1400, 1600 and 1920px because the
+     * heading does not reflow in the range where this card is sticky.
+     * 196 + 16 for the bottom margin = 212px = 13.25rem.
+     *
+     * Using 100vh here instead made the card 868px in a 900px window: it
+     * fitted once pinned, but hung 164px below the fold until you scrolled. */
+    height: calc(100vh - 13.25rem);
+    max-height: calc(100vh - 13.25rem);
   }
   /* The card only needs to be as tall as its contents; the column behind it */
   .checkout__side { align-self: stretch; }
@@ -3674,50 +3693,41 @@ body.replay .plate-art__ring { animation: none !important; }
 
 /* one choosable method -------------------------------------------------- */
 
-.paymethod { display: block; cursor: pointer; }
+/* Two routes, each its own form and its own button. */
 
-/* The radio is hidden from sight but not from the keyboard or a screen */
-.paymethod__radio {
-  position: absolute;
-  opacity: 0;
-  width: 0; height: 0;
-}
-
-.paymethod__box {
-  display: block;
+.payroute {
   padding: var(--sp-5);
   border-radius: 13px;
   border: 1px solid #7d6e5d;
   background: rgba(0,0,0,.18);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.3);
-  transition: border-color .18s ease, background .18s ease,
-              box-shadow .18s ease, transform .18s ease;
 }
-.paymethod:hover .paymethod__box { border-color: #a3917b; }
+/* The one that takes money is the one that looks live. */
+.payroute--now { border-color: var(--c-teal-lit); background: rgba(91,189,180,.1); }
 
-/* Checked is marked by the teal edge AND the filled tag, never by colour */
-.paymethod__radio:checked + .paymethod__box {
-  border-color: var(--c-teal-lit);
-  background: rgba(91,189,180,.12);
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 2px rgba(0,0,0,.18),
-    0 6px 16px rgba(0,0,0,.26);
-}
-/* Keyboard focus has to show even though the input itself is invisible. */
-.paymethod__radio:focus-visible + .paymethod__box {
-  outline: 3px solid var(--c-teal-lit);
-  outline-offset: 2px;
-}
-
-.paymethod__head {
+.payroute__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
   margin-bottom: .3rem;
 }
-.paymethod__name { font-weight: 700; font-size: 1.04rem; color: #fff; }
+.payroute__name { font-weight: 700; font-size: 1.06rem; color: #fff; }
+.payroute__desc { font-size: .91rem; color: #cdbfae; margin-bottom: var(--sp-4); }
+.payroute .field { margin-bottom: var(--sp-4); }
+
+.payroute__or {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: var(--sp-5) 0;
+  color: #b3a593;
+  font-size: .78rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.payroute__or::before,
+.payroute__or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,.18); }
+
 .paymethod__tag {
   flex: none;
   padding: .22rem .6rem;
@@ -3730,10 +3740,6 @@ body.replay .plate-art__ring { animation: none !important; }
   text-transform: uppercase;
 }
 .paymethod__tag--quiet { background: rgba(255,255,255,.14); color: #e6dcd0; }
-.paymethod__desc { display: block; font-size: .91rem; color: #cdbfae; }
-
-/* the phone number that belongs to the M-Pesa choice */
-.paymethod__extra { margin: 0 0 var(--sp-2); padding-left: var(--sp-5); }
 
 /* ------------------------------------------------------------- waiting ---- */
 
@@ -3974,11 +3980,11 @@ body.replay .plate-art__ring { animation: none !important; }
 
 /* THE KITCHEN SCREEN */
 
-.kitchen-html { background: #fff; }
+.kitchen-html { background: var(--c-dark); }
 
 .kitchen {
-  background: #fff;
-  color: var(--c-ink);
+  background: var(--c-dark);
+  color: #e4dad0;
   font-family: var(--f-body);
   min-height: 100vh;
 }
@@ -5408,8 +5414,6 @@ body.is-landing .site-footer__base {
 /* Not a box on a white page: the bookings view takes the whole screen. The
    panel keeps the dark ground but drops the frame, so the cards sit on the
    page itself. */
-.kitchen--bookings,
-.kitchen--bookings .kitchen-html { background: var(--c-dark); }
 .kitchen--bookings .kmain { max-width: none; }
 
 .bpanel {
@@ -5419,32 +5423,32 @@ body.is-landing .site-footer__base {
 }
 
 /* The bar goes dark with the rest of it. */
-.kitchen--bookings .kbar {
+.kitchen .kbar {
   background: var(--c-dark);
   border-bottom-color: rgba(255,255,255,.14);
 }
-.kitchen--bookings .kbar__title { color: #fff; }
-.kitchen--bookings .kbar__clock { color: #bdae9c; }
-.kitchen--bookings .kbar__left > div { border-left-color: rgba(255,255,255,.16); }
-.kitchen--bookings .brand--kitchen { color: var(--c-darker); }
-.kitchen--bookings .brand--kitchen .brand__word { color: #fff; }
-.kitchen--bookings .brand--kitchen .brand__edge { fill: rgba(255,255,255,.42); }
+.kitchen .kbar__title { color: #fff; }
+.kitchen .kbar__clock { color: #bdae9c; }
+.kitchen .kbar__left > div { border-left-color: rgba(255,255,255,.16); }
+.kitchen .brand--kitchen { color: var(--c-darker); }
+.kitchen .brand--kitchen .brand__word { color: #fff; }
+.kitchen .brand--kitchen .brand__edge { fill: rgba(255,255,255,.42); }
 
-.kitchen--bookings .kviews,
-.kitchen--bookings .kscope { background: rgba(255,255,255,.08); }
-.kitchen--bookings .kview,
-.kitchen--bookings .kscope__link { color: #cbbcab; }
-.kitchen--bookings .kview:hover,
-.kitchen--bookings .kscope__link:hover { color: #fff; }
-.kitchen--bookings .kview.is-on { background: var(--c-teal); color: #fff; }
+.kitchen .kviews,
+.kitchen .kscope { background: rgba(255,255,255,.08); }
+.kitchen .kview,
+.kitchen .kscope__link { color: #cbbcab; }
+.kitchen .kview:hover,
+.kitchen .kscope__link:hover { color: #fff; }
+.kitchen .kview.is-on { background: var(--c-teal); color: #fff; }
 
-.kitchen--bookings .crumbs__link { color: #bdae9c; }
-.kitchen--bookings .crumbs__link:hover { color: var(--c-teal-lit); }
-.kitchen--bookings .crumbs__here { color: #fff; }
-.kitchen--bookings .crumbs__sep { color: #8a7a68; }
+.kitchen .crumbs__link { color: #bdae9c; }
+.kitchen .crumbs__link:hover { color: var(--c-teal-lit); }
+.kitchen .crumbs__here { color: #fff; }
+.kitchen .crumbs__sep { color: #9b8a76; }
 
-.kitchen--bookings .kfoot { color: #bdae9c; }
-.kitchen--bookings .kfoot a { color: var(--c-teal-lit); }
+.kitchen .kfoot { color: #bdae9c; }
+.kitchen .kfoot a { color: var(--c-teal-lit); }
 
 .bpanel__head {
   display: flex;
@@ -5603,3 +5607,178 @@ body.is-landing .site-footer__base {
 /* The only destructive button a customer sees. */
 .button--danger { background: #a33125; color: #fff; border-color: #a33125; }
 .button--danger:hover { background: #87281e; border-color: #87281e; color: #fff; }
+
+
+/* ===========================================================================
+   THE ORDERS BOARD, DARK
+   Same home-page language as the bookings view — translucent cards on the
+   dark ground, pale-teal labels — but deliberately a different object: one
+   full-width ticket per row rather than a grid of small cards, because a
+   ticket carries dishes, an address, money and four buttons. The stage
+   colour is warm here, where bookings lean teal, so a glance tells the two
+   views apart.
+   =========================================================================== */
+
+.kmain { max-width: 68rem; }
+
+.kempty {
+  background: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.18);
+  color: #bdae9c;
+}
+
+/* ---- the ticket ---- */
+
+.kticket {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+  border-radius: 18px;
+}
+
+/* A wash per stage. Warm while it is being cooked, teal once it is done —
+   the same pairing the customer sees on their own tracking page. */
+.kticket--preparing { background: rgba(224,168,78,.13); border-color: rgba(224,168,78,.38); }
+.kticket--ready     { background: rgba(91,189,180,.13); border-color: rgba(91,189,180,.42); }
+.kticket--completed,
+.kticket--cancelled { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.1); box-shadow: none; }
+.kticket--completed .kticket__dish,
+.kticket--cancelled .kticket__dish { color: #a2927f; }
+
+/* ---- the head strip ---- */
+
+.kticket__head {
+  background: rgba(0,0,0,.22);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.kticket--preparing .kticket__head { background: rgba(224,168,78,.16); border-color: rgba(224,168,78,.3); }
+.kticket--ready     .kticket__head { background: rgba(91,189,180,.16); border-color: rgba(91,189,180,.32); }
+.kticket--late      .kticket__head { background: rgba(217,121,108,.2);  border-color: rgba(217,121,108,.4); }
+
+.kticket__ref { color: #fff; }
+.kticket__when strong { color: #fff; }
+.kticket__when { color: #bdae9c; }
+
+.kticket__state { background: rgba(255,255,255,.14); color: #e6dcd0; }
+.kticket--new .kticket__state       { background: rgba(224,168,78,.3);  color: #f6cf95; }
+/* 4.73:1 on the composited chip. #fbe0ae measured 4.03 — the chip's own
+   tint sits on top of the head wash, which lifts the background further
+   than the flat colour suggests. */
+.kticket--preparing .kticket__state { background: rgba(224,168,78,.4);  color: #fef4e2; }
+.kticket--ready .kticket__state     { background: rgba(91,189,180,.34); color: #a9e9e2; }
+
+.kticket__rel { background: rgba(255,255,255,.12); color: #e0d4c6; }
+.kticket--late .kticket__rel { background: rgba(217,121,108,.3); color: #f6d3cd; }
+.kticket--now  .kticket__rel { background: rgba(224,168,78,.32); color: #fbe0ae; }
+.kticket__day  { background: rgba(255,255,255,.12); color: #e0d4c6; }
+
+/* ---- the body ---- */
+
+.kticket__qty  { color: #a9e9e2; }
+.kticket__dish { color: #fff; }
+
+.kticket__notes {
+  background: rgba(224,168,78,.16);
+  color: #f6e2c4;
+}
+.kticket__notes-k { color: #e0a84e; }
+
+@media (min-width: 681px) {
+  /* The hairline between the two halves comes back on the dark ground —
+     without it the dishes and the counter details run together. */
+  .kticket__side { border-left: 1px solid rgba(255,255,255,.14); padding-left: var(--sp-6); }
+}
+
+.kticket__who dt   { color: #a9e9e2; }
+.kticket__who dd   { color: #e6dcd0; }
+.kticket__name     { color: #fff; }
+.kticket__tel      { color: #a9e9e2; }
+.kticket__addr     { color: #cdbfae; }
+
+.kticket__money { border-top-color: rgba(255,255,255,.14); }
+.kticket__total { color: #fff; }
+.kpay--paid  { background: rgba(91,189,180,.2);  color: #a9e9e2; }
+.kpay--owing { background: rgba(224,168,78,.22); color: #f6cf95; }
+
+.kacct        { background: rgba(91,189,180,.2); color: #a9e9e2; }
+.kacct--guest { background: rgba(255,255,255,.14); color: #cdbfae; }
+
+/* ---- the action row ---- */
+
+.kticket__acts {
+  background: rgba(0,0,0,.2);
+  border-top: 1px solid rgba(255,255,255,.12);
+}
+.kbtn--cash {
+  background: transparent;
+  color: #f6cf95;
+  border-color: rgba(224,168,78,.5);
+}
+.kbtn--cash:hover { background: rgba(224,168,78,.16); border-color: #e0a84e; }
+.kbtn--off {
+  background: transparent;
+  color: #d8ccbd;
+  border-color: rgba(255,255,255,.3);
+}
+.kbtn--off:hover { background: rgba(217,121,108,.18); border-color: #d9796c; color: #fff; }
+.kticket__closed { color: #bdae9c; }
+
+/* ---- history and the delete confirmation ---- */
+
+.khist summary { color: #bdae9c; }
+.khist summary:hover { color: #fff; }
+.khist__list {
+  background: rgba(0,0,0,.22);
+  border-color: rgba(255,255,255,.12);
+  color: #cdbfae;
+}
+.khist__list time { color: #fff; }
+.khist__who { color: #a2927f; }
+
+.kconfirm {
+  background: rgba(217,121,108,.16);
+  border-color: rgba(217,121,108,.45);
+}
+.kconfirm__ask { color: #f6d3cd; }
+.kconfirm__ask strong { color: #fff; }
+
+/* ---- the sign-in gate, on the dark ground ---- */
+
+.kgate__card {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.16);
+  color: #e4dad0;
+}
+.kgate__title { color: #fff; }
+.kgate__lead  { color: #bdae9c; }
+.kgate .field__label { color: #e6dcd0; }
+.kgate .field__input {
+  background: rgba(0,0,0,.26);
+  border-color: #7d6e5d;
+  color: #fff;
+  color-scheme: dark;
+}
+.kgate .field__input:focus {
+  border-color: var(--c-teal-lit);
+  box-shadow: 0 0 0 3px rgba(91,189,180,.26);
+}
+
+/* Dish photos on a kitchen ticket. */
+.kticket__items li { gap: .7rem; }
+.kticket__thumb {
+  flex: none;
+  width: 48px; height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18);
+}
+.kticket__thumb--none {
+  display: grid;
+  place-items: center;
+  font-family: "Anton", var(--f-display);
+  font-size: 1.1rem;
+  color: #cdbfae;
+}
+/* The quantity keeps its own column so the names still line up. */
+.kticket__items li { align-items: center; }

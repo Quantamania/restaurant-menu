@@ -291,29 +291,29 @@ require __DIR__ . '/../src/header.php';
 
           <?php else: ?>
 
-            <h2 class="paymethods__title">Choose a way to pay</h2>
+            <h2 class="paymethods__title">How would you like to pay?</h2>
 
-            <form method="post" action="pay.php" class="paymethods__form">
+            <!-- Two separate actions, not one radio group behind a single button.
+                 Paying later is not a kind of paying: making it a choice you then
+                 confirm with "Pay KSh 1,200" asked people to press Pay in order
+                 not to pay. Each route is now its own form and its own button. -->
+
+            <form method="post" action="pay.php" class="payroute payroute--now">
               <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
               <input type="hidden" name="ref" value="<?= e($reference) ?>">
+              <input type="hidden" name="method" value="mpesa">
 
-              <!-- M-Pesa -->
-              <label class="paymethod">
-                <input class="paymethod__radio" type="radio" name="method" value="mpesa" checked>
-                <span class="paymethod__box">
-                  <span class="paymethod__head">
-                    <span class="paymethod__name">M-Pesa</span>
-                    <span class="paymethod__tag">Pay now</span>
-                  </span>
-                  <span class="paymethod__desc">
-                    <?= payments_driver() === 'mpesa'
-                        ? 'We will send a prompt to your phone. Enter your PIN and you are done.'
-                        : 'Send the money from your phone. We confirm it against the order.' ?>
-                  </span>
-                </span>
-              </label>
+              <div class="payroute__head">
+                <span class="payroute__name">M-Pesa</span>
+                <span class="paymethod__tag">Pay now</span>
+              </div>
+              <p class="payroute__desc">
+                <?= payments_driver() === 'mpesa'
+                    ? 'We will send a prompt to your phone. Enter your PIN and you are done.'
+                    : 'Send the money from your phone. We confirm it against the order.' ?>
+              </p>
 
-              <div class="field paymethod__extra<?= !empty($errors['mpesa_phone']) ? ' field--bad' : '' ?>">
+              <div class="field<?= !empty($errors['mpesa_phone']) ? ' field--bad' : '' ?>">
                 <label class="field__label" for="mpesa_phone">M-Pesa number</label>
                 <input class="field__input" type="tel" id="mpesa_phone" name="mpesa_phone"
                        value="<?= e($order['phone']) ?>" placeholder="0712 345 678"
@@ -325,32 +325,36 @@ require __DIR__ . '/../src/header.php';
                 <?php endif; ?>
               </div>
 
-              <!-- Cash -->
-              <label class="paymethod">
-                <input class="paymethod__radio" type="radio" name="method" value="cash">
-                <span class="paymethod__box">
-                  <span class="paymethod__head">
-                    <span class="paymethod__name">
-                      Pay on <?= $order['order_type'] === 'delivery' ? 'delivery' : 'collection' ?>
-                    </span>
-                    <span class="paymethod__tag paymethod__tag--quiet">Later</span>
-                  </span>
-                  <span class="paymethod__desc">
-                    <?= $order['order_type'] === 'delivery'
-                        ? 'Cash or M-Pesa to the rider when your food arrives.'
-                        : 'Cash or M-Pesa at the counter when you pick it up.' ?>
-                  </span>
-                </span>
-              </label>
+              <button class="button button--lg button--block" type="submit" name="action" value="pay">
+                Pay KSh <?= $total ?>
+              </button>
+            </form>
 
-              <footer class="form-foot">
-                <button class="button button--lg button--block" type="submit" name="action" value="pay">
-                  Pay KSh <?= $total ?>
-                </button>
-                <p class="form-foot__note">
-                  Choosing "pay later" does not charge you anything now.
-                </p>
-              </footer>
+            <div class="payroute__or"><span>or</span></div>
+
+            <form method="post" action="pay.php" class="payroute">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="ref" value="<?= e($reference) ?>">
+              <input type="hidden" name="method" value="cash">
+
+              <div class="payroute__head">
+                <span class="payroute__name">
+                  Pay on <?= $order['order_type'] === 'delivery' ? 'delivery' : 'collection' ?>
+                </span>
+                <span class="paymethod__tag paymethod__tag--quiet">Nothing now</span>
+              </div>
+              <p class="payroute__desc">
+                <?= $order['order_type'] === 'delivery'
+                    ? 'Cash or M-Pesa to the rider when your food arrives.'
+                    : 'Cash or M-Pesa at the counter when you pick it up.' ?>
+              </p>
+
+              <!-- Goes straight to the tracking page: there is nothing to pay
+                   here, so there is nothing to confirm. -->
+              <button class="button button--lg button--block button--outline"
+                      type="submit" name="action" value="pay">
+                I will pay later &rarr;
+              </button>
             </form>
 
           <?php endif; ?>

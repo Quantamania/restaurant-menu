@@ -138,7 +138,7 @@ than a code change.
 
 ## 5. The database
 
-Twelve tables. Every relationship is a real foreign key, so the database
+Thirteen tables. Every relationship is a real foreign key, so the database
 refuses inconsistent data even if the PHP above it has a bug.
 
 ```
@@ -151,7 +151,7 @@ refuses inconsistent data even if the PHP above it has a bug.
 
   restaurant_tables ──< reservations
 
-  login_attempts                    (stands alone — rate limiting)
+  login_attempts    sessions        (stand alone — rate limiting, session data)
 ```
 
 | Table | What it is |
@@ -168,6 +168,7 @@ refuses inconsistent data even if the PHP above it has a bug.
 | `restaurant_tables` | The physical tables in the room |
 | `reservations` | A booking: who, when, which table |
 | `login_attempts` | Sign-in attempts, for rate limiting both doors |
+| `sessions` | Session data, when the host has no shared disk |
 
 ### Five decisions worth explaining
 
@@ -370,29 +371,48 @@ Open <http://localhost:8000>.
 
 ### On Vercel
 
-`vercel.json` is included. Three things have to be understood first:
+`vercel.json` and `.vercelignore` are included and the code-level blockers
+are fixed. Three things to know:
 
-1. **PHP on Vercel is a community runtime** (`vercel-php`), not an official
-   one.
-2. **The filesystem is read-only.** The `log` mail driver cannot write its
-   `.eml` files — it records the message in the `notifications` table
-   instead and says so.
-3. **The database must be hosted elsewhere** (PlanetScale, Railway, Aiven…).
+1. **PHP on Vercel is a community runtime** (`vercel-php`), not an official one.
+2. **The database must be hosted elsewhere** — PlanetScale, Railway, Aiven.
    Vercel provides no MySQL.
+3. **The filesystem is read-only.** The `log` mail driver cannot write its
+   `.eml` files, so it records the message in `notifications` and says so.
+   That is the only place the site writes to disk.
 
-Settings come from environment variables rather than `config.php`, which is
-gitignored and will not be deployed:
+Settings come from environment variables, because `config.php` is gitignored
+and will not be deployed:
 
 ```
-DB_HOST   DB_NAME   DB_USER   DB_PASS
-MAIL_DRIVER   SMTP_HOST   SMTP_USERNAME   SMTP_PASSWORD
+DB_HOST   DB_NAME   DB_USER   DB_PASS        ← required
 STAFF_PASSWORD_HASH   BASE_URL
+MAIL_DRIVER   SMTP_HOST   SMTP_USERNAME   SMTP_PASSWORD
 ```
 
-**Known limitation:** PHP sessions are stored on disk, and serverless
-functions do not share one. Signing in may not persist between requests
-until sessions are moved to the database or Redis. For a presentation, run
-it locally; deploy to Vercel to show the pipeline.
+#### Sessions had to move
+
+This was the real blocker, and it was not about staying signed in.
+
+PHP keeps sessions as files in a temp directory. Serverless containers do
+not share one, so the next request cannot read what the last wrote. **Every
+form on this site carries a CSRF token held in the session** — so ordering,
+booking, paying and the kitchen's buttons would all have come back "your
+session expired". The site would have looked fine and done nothing.
+
+`src/session.php` registers a `session_set_save_handler` that keeps sessions
+in the `sessions` table instead. Same `$_SESSION`, different shelf. It turns
+on automatically when `VERCEL` is set, or with `SESSION_DRIVER=database`,
+and falls back to files if the database cannot be reached.
+
+Proved rather than assumed, by running two PHP processes with **different**
+`session.save_path` values — the closest local stand-in for two containers:
+
+| | files | database |
+|---|---|---|
+| Signed in on container B with A's cookie | **no** | yes |
+| CSRF token minted by A, accepted by B | — | **yes, 302** |
+| B sees the account's orders | no | yes |
 
 ---
 
@@ -422,7 +442,7 @@ can say *when* but not *who*.
 | | |
 |---|---|
 | PHP files | 21 (9 pages, 11 engine, 1 tool) |
-| Database tables | 12 |
+| Database tables | 13 |
 | Lines of PHP | ~6,700 |
 | Lines of CSS | ~5,500 (one file) |
 | Lines of JS | ~650 (one file, all optional) |

@@ -1,15 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "public/**/*.php": {
-      "runtime": "vercel-php@0.7.3"
-    }
+    "public/**/*.php": { "runtime": "vercel-php@0.7.3" }
   },
   "routes": [
-    { "src": "/(.*\\.(css|js|jpg|jpeg|png|svg|ico|webp|woff2?))$", "dest": "/public/$1" },
-    { "src": "/images/(.*)", "dest": "/public/images/$1" },
-    { "src": "/$", "dest": "/public/index.php" },
-    { "src": "/([^.]+)$", "dest": "/public/$1.php" },
-    { "src": "/(.*)", "dest": "/public/$1" }
-  ]
+    { "src": "/images/(.*)",              "dest": "/public/images/$1" },
+    { "src": "/(.*\\.(css|js|map))$",     "dest": "/public/$1" },
+    { "src": "/(.*\\.(jpg|jpeg|png|gif|webp|svg|ico|woff|woff2))$", "dest": "/public/$1" },
+    { "src": "/",                          "dest": "/public/index.php" },
+    { "src": "/(.*\\.php)$",              "dest": "/public/$1" },
+    { "src": "/([a-z0-9-]+)$",            "dest": "/public/$1.php" },
+    { "src": "/(.*)",                      "dest": "/public/$1" }
+  ],
+  "env": { "SESSION_DRIVER": "database" }
 }

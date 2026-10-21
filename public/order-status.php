@@ -218,6 +218,36 @@ require __DIR__ . '/../src/header.php';
         }
       ?>
 
+      <?php if (($_GET['cancel'] ?? '') === $order['reference']
+                && in_array($order['status'], ['new', 'preparing', 'ready'], true)): ?>
+
+        <!-- At the top, where the eye already is after clicking Cancel —
+             at the foot it was below the fold on a long order. -->
+        <div class="cancelbox">
+          <p class="cancelbox__ask">
+            Cancel <strong><?= e($order['reference']) ?></strong>?
+            <?php if ($order['status'] !== 'new'): ?>
+              The kitchen has already started this one — please ring
+              <?= e($site['phone']) ?> as well so they can stop.
+            <?php endif; ?>
+            <?php if ($order['payment_status'] === 'paid'): ?>
+              You have paid, so we will arrange your refund.
+            <?php endif; ?>
+          </p>
+          <div class="cancelbox__acts">
+            <form method="post" action="order-status.php">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="reference" value="<?= e($order['reference']) ?>">
+              <button class="button button--danger" type="submit" name="action" value="cancel-order">
+                Yes, cancel it
+              </button>
+            </form>
+            <a class="button button--ghost"
+               href="order-status.php?ref=<?= urlencode($order['reference']) ?>">Keep it</a>
+          </div>
+        </div>
+      <?php endif; ?>
+
       <!-- ========== the answer, before any detail ========== -->
       <header class="statushead<?= $cancelled ? ' statushead--off' : '' ?>">
         <p class="statushead__ref">
@@ -383,43 +413,15 @@ require __DIR__ . '/../src/header.php';
 
       </div>
 
-      <?php if (in_array($order['status'], ['new', 'preparing', 'ready'], true)): ?>
-        <?php if (($_GET['cancel'] ?? '') === $order['reference']): ?>
 
-          <!-- Two presses, like the kitchen's delete. The question names the
-               order, so there is no chance of cancelling the wrong one. -->
-          <div class="cancelbox">
-            <p class="cancelbox__ask">
-              Cancel <strong><?= e($order['reference']) ?></strong>?
-              <?php if ($order['status'] !== 'new'): ?>
-                The kitchen has already started this one — please ring
-                <?= e($site['phone']) ?> as well so they can stop.
-              <?php endif; ?>
-              <?php if ($order['payment_status'] === 'paid'): ?>
-                You have paid, so we will arrange your refund.
-              <?php endif; ?>
-            </p>
-            <div class="cancelbox__acts">
-              <form method="post" action="order-status.php">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="reference" value="<?= e($order['reference']) ?>">
-                <button class="button button--danger" type="submit" name="action" value="cancel-order">
-                  Yes, cancel it
-                </button>
-              </form>
-              <a class="button button--ghost"
-                 href="order-status.php?ref=<?= urlencode($order['reference']) ?>">Keep it</a>
-            </div>
-          </div>
-
-        <?php else: ?>
-          <p class="cancelline">
-            Changed your mind?
-            <a href="order-status.php?ref=<?= urlencode($order['reference']) ?>&amp;cancel=<?= urlencode($order['reference']) ?>">
-              Cancel this order
-            </a>
-          </p>
-        <?php endif; ?>
+      <?php if (in_array($order['status'], ['new', 'preparing', 'ready'], true)
+                && ($_GET['cancel'] ?? '') !== $order['reference']): ?>
+        <p class="cancelline">
+          Changed your mind?
+          <a href="order-status.php?ref=<?= urlencode($order['reference']) ?>&amp;cancel=<?= urlencode($order['reference']) ?>">
+            Cancel this order
+          </a>
+        </p>
       <?php endif; ?>
 
       <p class="status-again">

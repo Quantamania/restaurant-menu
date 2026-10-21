@@ -306,3 +306,13 @@ ALTER TABLE orders ADD INDEX idx_mine (user_id, id);
 ALTER TABLE orders
   ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id)
   REFERENCES users(id) ON DELETE SET NULL;
+
+
+-- 7. Sessions in the database, for hosts with no shared disk ----------------
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id VARCHAR(128) NOT NULL PRIMARY KEY,
+  payload MEDIUMTEXT NOT NULL,
+  last_seen INT UNSIGNED NOT NULL,
+  INDEX idx_gc (last_seen)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

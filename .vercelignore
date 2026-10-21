@@ -1,5 +1,5 @@
 assets/
 storage/
-database/
 tools/
 *.md
+/tmp

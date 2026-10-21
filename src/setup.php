@@ -9,10 +9,18 @@ session_set_cookie_params([
     'path'     => '/',
 ]);
 
+// Sessions may need to live in the database — see src/session.php. The
+// handler has to be registered before the session starts.
+require __DIR__ . '/functions.php';
+require __DIR__ . '/session.php';
+
+if (sessions_in_database()) {
+    use_database_sessions();
+}
+
 session_start();
 
 // Five files, in the order a request needs them. Each is one topic:
-require __DIR__ . '/functions.php';   // the toolbox: database, escaping, CSRF
 require __DIR__ . '/messaging.php';   // settings, email, SMS, what gets sent
 require __DIR__ . '/payments.php';    // taking money
 require __DIR__ . '/auth.php';        // customer accounts and the staff door
