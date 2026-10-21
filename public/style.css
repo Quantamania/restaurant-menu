@@ -1,0 +1,5199 @@
+/* ===========================================================================
+ * Maridadi Eat — all the styles for the site
+ *
+ * There is only one stylesheet. It is split into numbered sections, in the
+ * order below. Scroll to the section you need, or search for its name.
+ *
+ *   1. SETTINGS AND BASICS
+ *   2. HEADER, NAV AND FOOTER
+ *   3. REUSABLE PIECES
+ *   4. HOME PAGE
+ *   5. RESERVATION PAGE
+ *   6. TABLE PICKER (reserve.php)
+ *   7. ORDER PAGE (order.php)
+ *   8. ORDER STATUS (order-status.php)
+ * =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * 1. SETTINGS AND BASICS
+ *
+ * Colours, fonts and sizes used everywhere. Change a value here and it
+ * changes across the whole site.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  /* colour — white page, brown and black */
+  --c-ink:        #1a1410;   /* text: near-black brown */
+  --c-ink-soft:   #55483c;   /* quieter text — darkened so it still clears
+                                4.5:1 over the blurred dishes behind it */
+  --c-bg:         #ffffff;   /* the page: white */
+  --c-surface:    #ffffff;   /* cards: white, separated by a hairline */
+  --c-raised:     #f7f2ec;   /* a faint warm tint for insets */
+  --c-dark:       #1c140e;   /* sidebar, footer, the tray bar: near black */
+  --c-darker:     #000000;   /* black */
+  --c-accent:     #9c5a28;   /* brown: prices, the brand voice */
+  --c-accent-lit: #c9743a;   /* the same brown, lifted for dark panels */
+
+  /* One second colour, opposite the brown on the wheel so it reads as its
+     own thing without fighting it. Used only for things you act on —
+     add-to-order, category discs, quantities, the ready-at chip — never for
+     prices or headings, which stay brown. */
+  --c-teal:       #0f7a74;   /* the second colour: anything you act on */
+  --c-teal-deep:  #0b5f5a;   /* for hover, where it needs to darken */
+  --c-teal-ink:   #084f4b;   /* teal TEXT on a pale page: --c-teal is only
+                                5.2:1 on white, which leaves no room for
+                                anything behind it */
+  --c-teal-lit:   #5bbdb4;   /* the same teal, for the dark card */
+  --c-teal-soft:  #eaf6f5;   /* a wash for tinted backgrounds */
+  --c-line:       #e6ddd1;   /* light brown hairline */
+  --c-ok-bg:      #e7f2ec;
+  --c-ok-ink:     #1d5c43;
+  --c-bad-bg:     #fcecea;
+  --c-bad-ink:    #a33125;
+
+  /* type */
+  /* One family, used throughout. Weight and letter-spacing do the work that
+     a second face would otherwise do. */
+  --f-display: "Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --f-body:    "Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+  /* spacing + shape */
+  --sp-1: .25rem;  --sp-2: .5rem;   --sp-3: .75rem;  --sp-4: 1rem;
+  --sp-5: 1.25rem; --sp-6: 1.5rem;  --sp-7: 1.75rem; --sp-8: 2rem;
+  --sp-10: 2.5rem; --sp-12: 3rem;   --sp-16: 4rem;
+  --radius:    14px;
+  --radius-sm: 8px;
+  --shadow:    0 1px 2px rgba(34,28,23,.04), 0 8px 24px rgba(34,28,23,.07);
+  --shadow-lg: 0 2px 4px rgba(34,28,23,.05), 0 18px 46px rgba(34,28,23,.13);
+  --wrap: 1480px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* An element with the hidden attribute stays hidden, even when a rule later
+   gives it a display. Without this, anything toggled with `hidden` that also
+   has a display in CSS would stay stubbornly visible. */
+[hidden] { display: none !important; }
+
+/* Form controls do not inherit colour by default. */
+input, select, textarea, button { color: inherit; }
+
+body, h1, h2, h3, h4, p, ul, ol, figure, address, table {
+  margin: 0;
+  padding: 0;
+}
+
+ul, ol { list-style: none; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* The page colour lives here, not on <body>. On body it would be handed to
+     the canvas and painted beneath everything — including the blurred dishes,
+     which sit at z-index -1 and would never be seen. On <html> the order is
+     unambiguous: this background, then the dishes, then the content. */
+  background: var(--c-bg);
+}
+
+body {
+  background: none;          /* see the note on html above */
+  color: var(--c-ink);
+  font-family: var(--f-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.022em;
+}
+
+h1 { font-size: clamp(2.3rem, 6vw, 3.9rem); }
+h2 { font-size: clamp(1.75rem, 3.6vw, 2.5rem); }
+h3 { font-size: clamp(1.25rem, 2.2vw, 1.55rem); }
+h4 { font-size: 1.06rem; }
+
+a { color: var(--c-accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--c-ink); }
+
+img { max-width: 100%; display: block; }
+
+:focus-visible {
+  outline: 3px solid var(--c-accent-lit);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. SIDEBAR, TOP BAR AND FOOTER
+ *
+ * The navigation lives in a column down the left. Below 960px that column
+ * slides off-screen and a slim bar with a ☰ button takes over.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  --sidebar-w: 104px;
+  --topbar-h: 58px;
+
+  /* how long the two halves of the page change take. The arriving half is a
+     little longer, so it is still settling as the page appears. */
+  --nav-out: .42s;
+  --nav-in:  .52s;
+  --fade:    .26s;
+
+  /* the bar condensing and opening out again: one duration and one easing
+     shared by every part of it, so they move as a single thing and reverse
+     identically on the way back up */
+  --nav-morph: .34s;
+  --nav-morph-ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: clamp(var(--sp-4), 3vw, var(--sp-10, 2.5rem));
+}
+
+
+main { min-height: 50vh; }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: var(--sp-2);
+  background: var(--c-surface);
+  color: var(--c-ink);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-sm);
+  z-index: 120;
+}
+.skip-link:focus { left: var(--sp-4); }
+
+/* ---------- the sidebar: a narrow rail of icons ---------- */
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-w);
+  z-index: 60;
+  /* The rail itself is see-through — only the panel inside it is dark, which
+     is what lets the logo sit on the white page above it. */
+  background: transparent;
+  color: #cfc3b2;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
+  padding: 0;
+}
+
+/* The dark column: it begins below the logo and stops short of the bottom of
+   the screen, and its right corners are rounded, so it curves away from the
+   edge of the page at both ends. */
+.sidebar__panel {
+  transition: transform .22s ease, opacity .18s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  margin-bottom: var(--sp-6);
+  padding: var(--sp-6) var(--sp-2);
+  background: var(--c-dark);
+  border-radius: 0 28px 28px 0;
+  box-shadow: 0 10px 40px rgba(28,20,14,.18);
+}
+
+/* The emblem sits above the dark panel, on the white page. */
+.brand__mark {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.nav { width: 100%; }
+
+.nav__list {
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: center;
+}
+
+.nav__link {
+  display: grid;
+  justify-items: center;
+  gap: .3rem;
+  width: 100%;
+  padding: .6rem .2rem .55rem;
+  border-radius: 12px;
+  color: #a99d8c;
+  text-decoration: none;
+  transition: background .16s ease, color .16s ease;
+}
+.nav__link:hover { background: rgba(255,255,255,.07); color: #fff; }
+
+.nav__icon {
+  display: grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  background: rgba(255,255,255,.06);
+  transition: background .16s ease, color .16s ease;
+}
+.nav__icon svg { width: 20px; height: 20px; }
+
+.nav__text {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+/* the page you are on */
+.nav__link.is-here { color: #fff; }
+.nav__link.is-here .nav__icon {
+  background: var(--c-teal);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(15,122,116,.45);
+}
+
+/* the round buttons at the foot of the rail */
+.sidebar__foot {
+  margin-top: auto;
+  padding-top: var(--sp-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.sidebar__dot {
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: #cfc3b2;
+  text-decoration: none;
+  transition: background .16s ease, color .16s ease;
+}
+.sidebar__dot:hover { background: var(--c-accent); color: #fff; }
+.sidebar__dot svg { width: 18px; height: 18px; }
+
+/* ---------- the content column ---------- */
+
+.shell {
+  margin-left: var(--sidebar-w);
+  transition: margin-left .22s ease;
+}
+
+/* Retracted: the whole rail slides away, logo and all, and the page takes the
+   full width. Only above the breakpoint — below it the rail is a drawer, and
+   this would outrank .sidebar.is-open and stop the hamburger opening it. */
+@media (min-width: 961px) {
+  body.is-rail-closed .sidebar { transform: translateX(-100%); }
+  body.is-rail-closed .shell   { margin-left: 0; }
+  body.is-rail-closed .rail-toggle { left: 12px; }
+}
+
+/* the handle that pulls it in and out */
+.rail-toggle {
+  position: fixed;
+  top: 14px;
+  left: calc(var(--sidebar-w) + 12px);
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 10px;
+  color: var(--c-ink);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: left .22s ease, background .15s ease, color .15s ease;
+}
+.rail-toggle:hover { background: var(--c-dark); border-color: var(--c-dark); color: #fff; }
+.rail-toggle svg { width: 17px; height: 17px; }
+.rail-toggle__out { display: none; }
+
+
+body.is-rail-closed .rail-toggle__in  { display: none; }
+body.is-rail-closed .rail-toggle__out { display: block; }
+
+/* the sidebar only animates when it is being retracted, never on load */
+.sidebar { transition: transform .22s ease; }
+
+/* ---------- the bar that replaces the sidebar on a phone ---------- */
+
+.topbar { display: none; }
+
+.topbar__toggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 42px; height: 38px;
+  padding: 0 9px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.topbar__toggle span {
+  display: block;
+  height: 2px;
+  background: #f4ece1;
+  border-radius: 2px;
+  transition: transform .2s ease, opacity .2s ease;
+}
+.topbar__toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.topbar__toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.topbar__toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.topbar__brand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(22,44,38,.55);
+}
+
+@media (max-width: 960px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    height: var(--topbar-h);
+    padding-inline: clamp(var(--sp-4), 3vw, var(--sp-8));
+    background: var(--c-dark);
+  }
+
+  .sidebar {
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    background: var(--c-dark);
+    box-shadow: 8px 0 28px rgba(28,20,14,.35);
+  }
+
+  /* as a drawer it is one solid column, not a floating panel */
+  .sidebar__panel {
+    margin-bottom: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .sidebar.is-open { transform: none; }
+
+  .shell { margin-left: 0; }
+
+  /* on a phone the ☰ in the top bar does this job */
+  .rail-toggle { display: none; }
+}
+
+/* ---------- footer ---------- */
+
+.site-footer {
+  margin-top: var(--sp-16);
+  background: var(--c-darker);
+  color: #cfc4b5;
+  padding-block: var(--sp-12) var(--sp-8);
+}
+
+.site-footer__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--sp-8);
+}
+
+.site-footer h3 {
+  font-size: 1.05rem;
+  color: #fff;
+  margin-bottom: var(--sp-3);
+}
+
+.site-footer a { color: var(--c-accent-lit); text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; color: #fff; }
+
+.site-footer__hours {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .3rem var(--sp-4);
+  font-size: .92rem;
+}
+.site-footer__hours dt { color: #cfc4b5; }
+.site-footer__hours dd { color: #fff; white-space: nowrap; }
+
+.site-footer__base {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-6);
+  border-top: 1px solid rgba(255,255,255,.1);
+  font-size: .86rem;
+  color: #9d9385;
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. REUSABLE PIECES
+ *
+ * Buttons, cards, messages and form fields. Used on both pages.
+ * --------------------------------------------------------------------------- */
+
+/* ---------- buttons ---------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .85rem 1.6rem;
+  background: var(--c-dark);
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  font-size: .98rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s ease, background .18s ease, box-shadow .18s ease;
+}
+.button:hover {
+  background: #36261a;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(28,20,14,.28);
+}
+.button:active { transform: translateY(0); }
+.button[disabled] { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+
+
+
+.button--block { width: 100%; }
+
+/* ---------- section headings ---------- */
+
+.section {
+  padding-block: var(--sp-16);
+  scroll-margin-top: var(--sp-6);
+}
+
+.section-head { margin-bottom: var(--sp-8); }
+
+.section-eyebrow {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--c-teal-ink);
+  margin-bottom: var(--sp-2);
+}
+
+.section-title { color: var(--c-ink); }
+
+
+
+
+/* ---------- cards ---------- */
+
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- messages ---------- */
+
+.msg {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-6);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-size: .96rem;
+  margin-bottom: var(--sp-6);
+}
+.msg__icon { font-size: 1.1rem; line-height: 1.5; flex: none; }
+
+.msg--ok  { background: var(--c-ok-bg);  color: var(--c-ok-ink);  border-color: #bcdccb; }
+.msg--bad { background: var(--c-bad-bg); color: var(--c-bad-ink); border-color: #f0c9c3; }
+
+.msg--empty {
+  background: var(--c-surface);
+  border: 1px dashed var(--c-line);
+  color: var(--c-ink-soft);
+  justify-content: center;
+}
+
+/* ---------- forms ---------- */
+
+.field { margin-bottom: var(--sp-6); }
+
+.field__label {
+  display: block;
+  margin-bottom: var(--sp-2);
+  font-weight: 600;
+  font-size: .92rem;
+  color: var(--c-ink);
+}
+
+.field__hint {
+  font-weight: 400;
+  color: var(--c-ink-soft);
+  font-size: .85rem;
+}
+
+.field__input,
+.field__select,
+.field__textarea {
+  width: 100%;
+  padding: .8rem 1rem;
+  background: var(--c-surface);
+  /* 3.1:1 against a white card. --c-line is only 1.3:1, which leaves the
+     edge of a field all but invisible — a boundary you need in order to see
+     the control has to reach 3:1. */
+  border: 1px solid #a39076;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: .98rem;
+  color: var(--c-ink);
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.field__textarea { min-height: 120px; resize: vertical; }
+
+.field__input:focus,
+.field__select:focus,
+.field__textarea:focus {
+  outline: none;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(201,116,58,.16);
+}
+
+/* 4.6:1 against the field. The old #b3a695 measured 2.3:1 — placeholder text
+   has to meet the same contrast minimum as any other text. */
+.field__input::placeholder,
+.field__textarea::placeholder { color: #80705d; }
+
+.field--bad .field__input,
+.field--bad .field__select,
+.field--bad .field__textarea { border-color: #d9796c; background: #fffbfa; }
+
+.field__error {
+  display: block;
+  margin-top: var(--sp-2);
+  color: var(--c-bad-ink);
+  font-size: .86rem;
+  font-weight: 500;
+}
+
+.field__counter {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: .82rem;
+  color: var(--c-ink-soft);
+  text-align: right;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+}
+@media (max-width: 560px) { .field-row { grid-template-columns: 1fr; gap: 0; } }
+
+/* ---------------------------------------------------------------------------
+ * 4. HOME PAGE
+ *
+ * Only used by index.php.
+ * --------------------------------------------------------------------------- */
+
+/* ---------- the menu ---------- */
+
+.menu-section { padding-block: clamp(var(--sp-8), 4vw, var(--sp-12)) var(--sp-16); }
+
+/* The word MENU as a masthead: as heavy and as tight as the family goes, sized
+   so it runs the full width of the column. */
+/* The word sits hard against the far left, beside the sidebar; the stacked
+   tagline is pushed out to the right of the column. */
+.masthead {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-6);
+  margin-bottom: clamp(var(--sp-10, 2.5rem), 5vw, 3.5rem);
+  /* Size the word against this column, not the viewport — the sidebar takes
+     264px out of the window and vw units know nothing about it. */
+  container-type: inline-size;
+}
+
+/* M, then a stack holding a small E over the restaurant name, then N and U —
+   all butted together the way a painted sign would be set. */
+.masthead__word {
+  display: flex;
+  align-items: flex-start;
+  margin: 0;
+  font-family: "Anton", "Roboto Condensed", Impact, sans-serif;
+  font-weight: 400;              /* Anton ships one weight, already very heavy */
+  font-size: clamp(2.8rem, 34cqw, 17rem);
+  line-height: .74;
+  letter-spacing: -.012em;
+  text-transform: uppercase;
+  color: var(--c-dark);
+
+  /* Narrowed horizontally — Anton has no condensed axis, so the letterforms
+     are squeezed instead, which also thins the stems. */
+  transform: scaleX(.84);
+  transform-origin: left center;
+
+  /* Anton leaves empty descender space under the caps. Reclaiming it with a
+     negative margin lets the word run large without shoving the menu down,
+     while the painted letters still stop clear of the dish text. */
+  margin-bottom: -.14em;
+
+  /* clicks fall through to whatever is underneath */
+  pointer-events: none;
+}
+
+.mast__big { display: block; }
+
+/* the stack that sits between the M and the N; the name centres on the E */
+.mast__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+}
+
+/* The E sits at the top, a little over half the height of its neighbours.
+   With a tight line-height the cap starts a fixed fraction of the font-size
+   above its box, so a smaller letter's cap lands lower than a big one's. The
+   negative margin is exactly that difference, measured from Anton's metrics,
+   so all four caps share one line. */
+.mast__small {
+  display: block;
+  font-size: .58em;
+  line-height: .74;
+  margin-top: -.047em;
+  /* Stretched downward only: the top stays on the cap line with the M, N and
+     U, and the letter runs longer below it.
+     A transform does not change the layout box, so the extra height has to be
+     paid for with a margin or whatever follows would sit on top of the
+     letter. The stretch adds (scale - 1) x line-height of the E's own size,
+     which is .45 x .74 = .333em — hence the margin below. */
+  transform: scaleY(1.45);
+  transform-origin: top center;
+  margin-bottom: .333em;
+}
+
+/* the restaurant name tucked into the space the small E leaves behind */
+.mast__name {
+  display: flex;
+  flex-direction: column;
+  /* .5em of the NAME's own size — an em here resolves against this element's
+     font-size, not the big word's. */
+  /* a plain gap now that the E has paid for its own stretch */
+  margin-top: .9em;
+  align-items: center;
+  text-align: center;
+  /* Poppins, so the bar E below matches the one in the logo exactly. */
+  font-family: "Poppins", var(--f-body);
+  /* Slimmer than it was (.095em). The stack between the M and the N is as
+     wide as its widest child, and at the old size the name was twice the
+     width of the E — which is what left the E floating in a gap. */
+  font-size: .058em;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -.005em;
+  text-transform: uppercase;
+  color: var(--c-dark);
+  /* Anton's E carries a left side bearing, so the painted letter sits a
+     little right of the middle of its box. Centring the boxes alone left the
+     name 1.2px to the left of the letter above it; this puts it under the
+     ink. Expressed in em, so it holds at every size the masthead takes. */
+  transform: translateX(.12em);
+}
+
+
+/* The tagline runs down the page, one word per line, but the words are not
+   uniform: they alternate big/small and heavy/light, and each is nudged a
+   different distance from the right edge so the column reads as hand-set
+   rather than typed. The pattern repeats every six words, so it works for a
+   tagline of any length. */
+.masthead__sub {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  padding-bottom: .35rem;
+  text-transform: uppercase;
+}
+
+.masthead__sub span {
+  display: block;
+  line-height: .98;
+  transform-origin: right center;
+}
+
+.masthead__sub span:nth-child(6n + 1) {
+  font-size: 2.15rem;
+  font-weight: 900;
+  letter-spacing: -.015em;
+  color: var(--c-ink);
+  margin-right: 0;
+}
+.masthead__sub span:nth-child(6n + 2) {
+  font-size: .96rem;
+  font-weight: 300;
+  letter-spacing: .34em;
+  color: var(--c-ink-soft);
+  margin-right: .9em;
+  transform: rotate(-1.2deg);
+}
+.masthead__sub span:nth-child(6n + 3) {
+  font-size: 1.58rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--c-accent);
+  margin-right: .25em;
+}
+.masthead__sub span:nth-child(6n + 4) {
+  font-size: .9rem;
+  font-weight: 400;
+  letter-spacing: .4em;
+  color: var(--c-ink-soft);
+  margin-right: 2.1em;
+  transform: rotate(1.4deg);
+}
+.masthead__sub span:nth-child(6n + 5) {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -.01em;
+  color: var(--c-ink);
+  margin-right: .6em;
+}
+.masthead__sub span:nth-child(6n + 6) {
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+  color: var(--c-accent);
+  margin-right: 1.5em;
+  transform: rotate(-.8deg);
+}
+
+/* Only pull into the column's padding where there IS a sidebar to sit
+   against — otherwise the word just runs off the edge of a phone. */
+@media (min-width: 961px) {
+  .masthead { margin-left: calc(-1 * clamp(var(--sp-4), 3vw, var(--sp-10))); }
+}
+
+/* Stacked on a narrow screen, both still pushed left. */
+@media (max-width: 680px) {
+  .masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-4);
+  }
+  .masthead__sub {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 .45em;
+    padding-bottom: 0;
+  }
+  /* Inline, the nudges and tilts just look like mistakes. :nth-child(n)
+     matches every word at the same specificity as the staggering rules
+     above, so being later in the file is enough to win. */
+  .masthead__sub span:nth-child(n) { margin-right: 0; transform: none; }
+}
+
+.course {
+  position: relative;
+  z-index: 1;                 /* keeps the dish text above the big word */
+}
+.course + .course { margin-top: clamp(var(--sp-12), 7vw, 5.5rem); }
+
+/* the centred heading over each course */
+
+.course__head {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-4);
+  margin-bottom: clamp(var(--sp-8), 4vw, var(--sp-12));
+  text-align: center;
+}
+
+
+/* a rule, a diamond, a rule */
+.course__ornament {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.course__ornament-rule {
+  width: 52px;
+  height: 1px;
+  background: var(--c-accent);
+  opacity: .5;
+}
+.course__ornament-mark {
+  width: 9px;
+  height: 9px;
+  background: var(--c-teal);
+  border: 1px solid var(--c-teal);
+  transform: rotate(45deg);
+}
+
+.course__title {
+  font-size: clamp(2.3rem, 6vw, 3.6rem);
+  font-weight: 300;
+  letter-spacing: .01em;
+  color: var(--c-ink);
+}
+
+/* two columns of dishes with a divider down the middle */
+
+.course__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: clamp(var(--sp-8), 6vw, 4.5rem);
+  row-gap: clamp(var(--sp-8), 4vw, var(--sp-12));
+}
+
+.course__grid::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 1px;
+  background: var(--c-line);
+}
+
+@media (max-width: 820px) {
+  .course__grid { grid-template-columns: 1fr; }
+  .course__grid::before { display: none; }
+}
+
+/* one dish: photo | name + description | price */
+
+.plate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--sp-2) var(--sp-5, 1.25rem);
+  align-items: start;
+  scroll-margin-top: var(--sp-8);
+}
+
+.plate__photo {
+  grid-row: 1 / span 2;
+  width: 104px;
+  height: 104px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--c-raised);
+}
+
+/* shown until the kitchen adds a photo for that dish */
+.plate__photo--none {
+  display: grid;
+  place-items: center;
+  font-size: 2.2rem;
+  font-weight: 300;
+  color: var(--c-accent);
+  background: var(--c-raised);
+  border: 1px solid var(--c-line);
+}
+
+.plate__name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+  line-height: 1.2;
+  color: var(--c-ink);
+  margin-bottom: .35rem;
+}
+
+.plate__desc {
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--c-ink-soft);
+}
+
+.plate__price {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 1.22rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-ink);
+  white-space: nowrap;
+}
+
+.plate__add {
+  display: inline-block;
+  margin-top: .6rem;
+  padding: .3rem .7rem;
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-teal);
+  background: var(--c-teal-soft);
+  border: 1px solid rgba(15,122,116,.28);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.plate__add::before { content: "+ "; }
+.plate__add:hover { background: var(--c-teal-deep); border-color: var(--c-teal-deep); color: #fff; }
+
+/* hours and location ------------------------------------------------------ */
+
+.hours__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+}
+/* :not(.button) — otherwise this would repaint the buttons in that card and
+   leave brown text on a dark button. */
+.hours__card a:not(.button) { color: var(--c-accent); text-decoration: none; }
+.hours__card a:not(.button):hover { color: var(--c-ink); text-decoration: underline; }
+
+/* ---------- about ---------- */
+
+.about__grid {
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: var(--sp-12);
+  align-items: center;
+}
+
+/* ---------- hours + location ---------- */
+
+.hours__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-8);
+}
+
+
+
+
+
+.contact-item__value { font-style: normal; font-weight: 500; }
+
+/* ---------------------------------------------------------------------------
+ * 5. RESERVATION PAGE
+ *
+ * reserve.php: a booking stub down the left that fills in as you choose, and
+ * the three steps on the right.
+ * --------------------------------------------------------------------------- */
+
+.reserve { padding-block: var(--sp-12) var(--sp-16); }
+
+.reserve__layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: var(--sp-8);
+  align-items: start;
+}
+@media (max-width: 920px) {
+  .reserve__layout { grid-template-columns: 1fr; gap: var(--sp-6); }
+}
+
+.reserve__steps { display: grid; gap: var(--sp-6); min-width: 0; }
+
+.step-card { padding: clamp(var(--sp-6), 3vw, var(--sp-8)); min-width: 0; }
+
+/* the stub ---------------------------------------------------------------- */
+
+/* Shaped like a cloakroom ticket: a body, a torn perforation, then the
+   button on the counterfoil. */
+.stub {
+  position: relative;
+  background: var(--c-dark);
+  color: #ece3d6;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  min-width: 0;
+}
+@media (min-width: 921px) { .stub { position: sticky; top: var(--sp-6); } }
+
+.stub__body { padding: var(--sp-8) var(--sp-6) var(--sp-6); }
+
+.stub__brand {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--c-accent-lit);
+  margin-bottom: var(--sp-2);
+}
+
+.stub__title {
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: .02em;
+  color: #fff;
+  margin-bottom: var(--sp-6);
+}
+
+.stub__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .55rem var(--sp-4);
+  padding-bottom: var(--sp-6);
+  border-bottom: 1px solid rgba(255,255,255,.16);
+  font-size: .96rem;
+}
+.stub__facts dt { color: #b9ad9c; }
+.stub__facts dd { text-align: right; font-weight: 500; color: #fff; }
+
+/* the chosen table, shown big like a seat number on a ticket */
+.stub__table {
+  display: grid;
+  justify-items: center;
+  gap: .2rem;
+  padding: var(--sp-6) var(--sp-4) var(--sp-2);
+  text-align: center;
+}
+
+.stub__table-label {
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--c-accent-lit);
+}
+.stub__table-area { font-size: .86rem; color: #b9ad9c; }
+
+.stub__table--none .stub__table-label { color: rgba(255,255,255,.42); }
+
+/* the perforation */
+.stub__tear {
+  position: relative;
+  height: 20px;
+  background:
+    radial-gradient(circle at 10px 50%, var(--c-bg) 9px, transparent 10px) left center/20px 20px no-repeat,
+    radial-gradient(circle at calc(100% - 10px) 50%, var(--c-bg) 9px, transparent 10px) right center/20px 20px no-repeat;
+}
+.stub__tear::before {
+  content: "";
+  position: absolute;
+  left: 18px; right: 18px; top: 50%;
+  border-top: 2px dashed rgba(255,255,255,.3);
+}
+
+.stub__foot { padding: var(--sp-2) var(--sp-6) var(--sp-8); }
+
+/* ---------------------------------------------------------------------------
+ * 6. TABLE PICKER
+ *
+ * The "which table is free" cards on reserve.php.
+ * --------------------------------------------------------------------------- */
+
+/* step headings ----------------------------------------------------------- */
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+  font-family: var(--f-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--c-dark);
+}
+
+.step__n {
+  flex: none;
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  background: var(--c-dark);
+  color: #fff;
+  border-radius: 50%;
+  font-family: var(--f-body);
+  font-size: .9rem;
+}
+
+
+
+/* the legend above the tables --------------------------------------------- */
+
+.tables__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-4);
+  margin-bottom: var(--sp-6);
+  font-size: .84rem;
+  color: var(--c-ink-soft);
+}
+
+.dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: .3rem;
+  vertical-align: baseline;
+}
+.dot--free  { background: var(--c-teal); }
+.dot--taken { background: #cbb9a4; }
+.dot--small { background: #e0c34f; }
+
+/* the table cards --------------------------------------------------------- */
+
+.area + .area { margin-top: var(--sp-8); }
+
+.area__name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+}
+
+.area__free {
+  font-size: .78rem;
+  font-weight: 500;
+  letter-spacing: .04em;
+  text-transform: none;
+  color: var(--c-ink-soft);
+  white-space: nowrap;
+}
+
+.tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: var(--sp-3);
+}
+
+/* The radio itself is hidden; the label is what you see and click. */
+.table-card__input {
+  position: absolute;
+  opacity: 0;
+  width: 1px; height: 1px;
+}
+
+.table-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  height: 100%;
+  padding: var(--sp-4) var(--sp-3);
+  text-align: center;
+  background: var(--c-surface);
+  border: 2px solid var(--c-line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.table-card:hover { border-color: var(--c-accent-lit); transform: translateY(-2px); }
+
+.table-card__label {
+  font-family: var(--f-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--c-ink);
+}
+.table-card__seats { font-size: .84rem; color: var(--c-ink-soft); }
+
+.table-card__state {
+  margin-top: var(--sp-2);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-teal);
+}
+
+/* chosen */
+.table-card__input:checked + .table-card {
+  border-color: var(--c-teal);
+  background: var(--c-teal-soft);
+  box-shadow: 0 0 0 3px rgba(15,122,116,.22);
+}
+
+/* keyboard focus, since the real radio is hidden */
+.table-card__input:focus-visible + .table-card {
+  outline: 3px solid var(--c-accent-lit);
+  outline-offset: 2px;
+}
+
+
+
+
+.table-card--taken .table-card__label,
+.table-card--small .table-card__label { color: var(--c-ink-soft); }
+
+.table-card--taken .table-card__state { color: #74654f; }
+.table-card--small .table-card__state { color: #7f650a; }
+
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. ORDER PAGE
+ *
+ * order.php: search and category chips over a grid of dish cards, with a
+ * receipt panel on the right that stays with you as you scroll.
+ * --------------------------------------------------------------------------- */
+
+.order-page { padding-block: clamp(var(--sp-8), 3vw, var(--sp-12)) var(--sp-16); }
+
+.checkout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(400px, 33vw, 520px);
+  gap: clamp(var(--sp-6), 2.5vw, var(--sp-12));
+  /* NOT align-items: start. That shrinks the right-hand column to exactly the
+     height of the card, which leaves a sticky card nowhere to travel — it
+     just scrolls away with the page. Stretching the column to the full row
+     height is what gives the card something to stick inside. */
+  align-items: stretch;
+}
+/* The card is wider than it was, so the two columns need more room before
+   they are worth keeping. Below this the card drops under the dishes. */
+@media (max-width: 1149px) { .checkout { grid-template-columns: 1fr; } }
+
+.checkout__main { display: grid; gap: clamp(var(--sp-8), 3vw, var(--sp-12)); min-width: 0; }
+.checkout__side { min-width: 0; }
+
+/* search ------------------------------------------------------------------ */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: .2rem .4rem .2rem 1rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+.search:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px rgba(156,90,40,.14); }
+
+.search__icon { color: var(--c-ink-soft); font-size: 1.05rem; }
+
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: .72rem 0;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: .98rem;
+  color: var(--c-ink);
+}
+.search__input:focus { outline: none; }
+.search__input::placeholder { color: var(--c-ink-soft); }
+
+/* block headings --------------------------------------------------------- */
+
+.block__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5, 1.25rem);
+}
+
+.block__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--c-ink);
+}
+
+/* the small line under each heading, in the accent */
+.block__sub {
+  margin-top: .15rem;
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--c-teal-ink);
+}
+
+/* the "see more" pill on the right of a heading */
+.block__more {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem 1rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 999px;
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--c-ink);
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.block__more span { font-size: 1.1rem; line-height: 1; }
+.block__more:hover {
+  background: var(--c-dark);
+  border-color: var(--c-dark);
+  color: #fff;
+}
+
+/* categories as discs ----------------------------------------------------- */
+
+.cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5, 1.25rem);
+}
+
+.cat {
+  display: grid;
+  justify-items: center;
+  gap: .45rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cat__disc {
+  display: grid;
+  place-items: center;
+  width: 66px; height: 66px;
+  background: var(--c-teal-soft);
+  border: 1px solid #cfe3e1;
+  border-radius: 50%;
+  font-family: "Anton", var(--f-display);
+  font-size: 1.5rem;
+  color: var(--c-teal);
+  transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+}
+.cat:hover .cat__disc { transform: translateY(-3px); border-color: var(--c-teal); }
+
+.cat__name {
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.cat__count {
+  font-size: .74rem;
+  color: var(--c-ink-soft);
+  margin-top: -.3rem;
+}
+
+.cat.is-on .cat__disc {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(15,122,116,.3);
+}
+.cat.is-on .cat__name { font-weight: 700; }
+
+.cat:focus-visible .cat__disc { outline: 3px solid var(--c-accent-lit); outline-offset: 3px; }
+
+/* dish cards -------------------------------------------------------------- */
+
+
+.dish-grid__empty {
+  padding: var(--sp-8);
+  border: 1px dashed var(--c-line);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--c-ink-soft);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* The same description the menu page shows, clamped to two lines so the
+   cards in a row stay the same height. */
+
+
+
+
+
+
+
+
+
+
+
+
+/* - and + are added by script.js, so the plain box still works without JS */
+
+
+
+
+
+
+
+
+/* the receipt panel: brown, and it follows you down the page ------------- */
+
+@media (min-width: 1150px) {
+  .receipt-panel {
+    position: sticky;
+    top: var(--sp-6);
+    /* The card starts about 11rem down the page, so this is the tallest it
+       can be and still sit wholly on screen from the moment the page loads
+       — nothing runs off the bottom, and once it pins it simply stays. */
+    height: calc(100vh - 11rem);
+    max-height: calc(100vh - 11rem);
+  }
+  /* The card only needs to be as tall as its contents; the column behind it
+     is what carries the scrolling height. */
+  .checkout__side { align-self: stretch; }
+  /* Only the cart scrolls. The totals and Confirm order stay pinned to the
+     bottom of the card — otherwise a long cart pushes the button out of
+     sight and nobody can find it. */
+  .receipt-panel__body { overflow-y: auto; min-height: 0; }
+}
+
+.receipt-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--c-dark);
+  color: #cfc3b2;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.receipt-panel__top,
+.receipt-panel__tear,
+.receipt-panel__foot { flex: none; }
+
+.receipt-panel__body { flex: 1 1 auto; }
+
+/* the address block: an inset card a shade lighter than the panel */
+.receipt-panel__top {
+  margin: var(--sp-5, 1.25rem);
+  padding: var(--sp-5, 1.25rem);
+  background: rgba(255,255,255,.07);
+  border-radius: 14px;
+}
+.receipt-panel__label {
+  margin-bottom: .6rem;
+  font-size: .88rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.rp-line {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  font-size: .88rem;
+  line-height: 1.4;
+  color: #c6baa8;
+}
+.rp-line + .rp-line { margin-top: .45rem; }
+.rp-line--muted { color: #9a8e7d; }
+
+.rp-icon { width: 15px; height: 15px; flex: none; margin-top: .15rem; }
+.rp-icon--lg { width: 20px; height: 20px; margin-top: 0; }
+
+.receipt-panel__body { padding: 0 var(--sp-5, 1.25rem) var(--sp-4); }
+
+.receipt-panel__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+.receipt-panel__title {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+}
+.receipt-panel__count { font-size: .82rem; color: #9a8e7d; }
+
+/* collection / delivery: an outlined pill with the active option filled */
+.seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 var(--sp-5, 1.25rem);
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+}
+.seg__opt { position: relative; }
+.seg__opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg__opt span {
+  display: block;
+  padding: .55rem .4rem;
+  border-radius: 999px;
+  text-align: center;
+  font-size: .92rem;
+  color: #c6baa8;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.seg__opt input:checked + span { background: var(--c-accent); color: #fff; font-weight: 600; }
+.seg__opt input:focus-visible + span { outline: 3px solid var(--c-accent-lit); outline-offset: 2px; }
+
+/* the address box, styled for the dark card */
+.receipt-panel .field__label { color: #c6baa8; }
+.receipt-panel .field__textarea {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.16);
+  color: #fff;
+}
+.receipt-panel .field__textarea::placeholder { color: #8d8373; }
+.receipt-panel .field__textarea:focus {
+  border-color: var(--c-accent-lit);
+  box-shadow: 0 0 0 3px rgba(201,116,58,.25);
+}
+.receipt-panel .field__error { color: #f0a79c; }
+
+.receipt-panel__empty {
+  padding: var(--sp-5, 1.25rem) var(--sp-4);
+  border: 1px dashed rgba(255,255,255,.2);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: .9rem;
+  color: #9a8e7d;
+}
+
+/* ---- the cart lines ---- */
+
+.cart { display: grid; }
+
+.cart__row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: var(--sp-3);
+  align-items: start;
+  padding: var(--sp-4) 0;
+}
+.cart__row + .cart__row { border-top: 1px solid rgba(255,255,255,.1); }
+
+.cart__thumb {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgba(255,255,255,.08);
+}
+.cart__thumb--none {
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #e9b97f;
+}
+
+.cart__text { min-width: 0; }
+.cart__name {
+  font-size: 1.06rem;
+  font-weight: 800;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.cart__desc {
+  margin-top: .1rem;
+  font-size: .8rem;
+  line-height: 1.35;
+  color: #9a8e7d;
+}
+.cart__qty { margin-top: .35rem; font-size: .8rem; color: #9a8e7d; }
+
+.cart__money { font-size: .95rem; font-weight: 700; color: #fff; white-space: nowrap; }
+
+/* the - n + control under each line */
+.cart__step {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  margin-top: .5rem;
+}
+.cart__btn {
+  width: 1.5rem; height: 1.5rem;
+  flex: none;
+  display: grid; place-items: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  color: #e3d9cb;
+  font: inherit;
+  font-size: .85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.cart__btn:hover { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.cart__count {
+  min-width: .9rem;
+  text-align: center;
+  font-size: .88rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* the torn edge between the cart and the totals */
+.receipt-panel__tear {
+  position: relative;
+  height: 22px;
+  margin-top: var(--sp-2);
+  background:
+    radial-gradient(circle at 11px 50%, var(--c-bg) 10px, transparent 11px) left center/22px 22px no-repeat,
+    radial-gradient(circle at calc(100% - 11px) 50%, var(--c-bg) 10px, transparent 11px) right center/22px 22px no-repeat;
+}
+.receipt-panel__tear::before {
+  content: "";
+  position: absolute;
+  left: 20px; right: 20px; top: 50%;
+  border-top: 2px dashed rgba(255,255,255,.22);
+}
+
+.receipt-panel__foot { padding: var(--sp-2) var(--sp-5, 1.25rem) var(--sp-5, 1.25rem); }
+
+/* a label on the left, a dark pill on the right */
+.rp-chiprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5, 1.25rem);
+  font-size: .9rem;
+  color: #c6baa8;
+}
+.rp-chiprow__chip {
+  padding: .5rem 1.1rem;
+  background: rgba(70,167,159,.16);
+  border: 1px solid rgba(70,167,159,.45);
+  border-radius: 999px;
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--c-teal-lit);
+  white-space: nowrap;
+}
+
+/* Label on the left, amount on the right — never stacked. Shared by the
+   receipt card and the order-status page. */
+.order-sum {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: .55rem var(--sp-4);
+  margin: var(--sp-6) 0 var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--c-line);
+  font-size: .95rem;
+}
+.order-sum dt { color: var(--c-ink-soft); }
+.order-sum dd {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-ink);
+}
+.order-sum .order-sum__total {
+  margin-top: .35rem;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--c-line);
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--c-ink);
+}
+dt.order-sum__total { letter-spacing: .04em; text-transform: uppercase; }
+
+.receipt-panel .order-sum { border-top: 0; margin: 0 0 var(--sp-4); padding-top: 0; }
+.receipt-panel .order-sum dt { color: #9a8e7d; }
+.receipt-panel .order-sum dd { color: #fff; }
+.receipt-panel .order-sum .order-sum__total {
+  border-top-color: rgba(255,255,255,.18);
+  font-size: 1.45rem;
+  color: #fff;
+}
+.receipt-panel .order-sum dd.order-sum__total { text-transform: none; }
+.receipt-panel .order-note { color: #9a8e7d; }
+.receipt-panel .order-note--warn { color: #f0a79c; }
+
+/* The card is --c-dark and so is .button, which made the button vanish into
+   it. On this card it is light instead. */
+.receipt-panel .button {
+  background: var(--c-teal);
+  color: #fff;
+  border-color: var(--c-teal);
+}
+.receipt-panel .button:hover {
+  background: var(--c-teal-lit);
+  border-color: var(--c-teal-lit);
+  color: var(--c-darker);
+  box-shadow: 0 8px 22px rgba(15,122,116,.45);
+}
+
+.receipt-panel__go {
+  margin-top: var(--sp-4);
+  padding-block: 1rem;
+  border-radius: 999px;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+.receipt-panel .reserve__legal { color: #8d8373; }
+
+/* the details card ------------------------------------------------------- */
+
+.details-card { padding: clamp(var(--sp-6), 2.5vw, var(--sp-8)); }
+
+/* Fields sit in even columns rather than stretching across the whole card —
+   a 980px-wide email box is miserable to read. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
+  gap: var(--sp-5) var(--sp-6);
+  align-items: start;
+}
+
+.form-grid .field { margin-bottom: 0; }
+
+/* A labelled divider across the whole grid, so a run of fields reads as
+   two named groups rather than one long ladder. */
+.form-grid__legend {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: var(--sp-2) 0 calc(var(--sp-2) * -1);
+}
+.form-grid__legend-text {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--c-ink-soft);
+  white-space: nowrap;
+}
+.form-grid__legend-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--c-line);
+}
+/* On the brown card the label is teal and the rule has to lift off the wood. */
+.form-brown .form-grid__legend-text { color: var(--c-teal-lit); }
+.form-brown .form-grid__legend-rule { background: rgba(255,255,255,.14); }
+
+/* the notes box gets the full row, but is still capped to a readable width */
+.field--full {
+  grid-column: 1 / -1;
+  max-width: 62ch;
+}
+
+/* a line of guidance that fills the gap left beside the time picker */
+.form-aside {
+  align-self: end;
+  padding-bottom: .7rem;
+  font-size: .86rem;
+  line-height: 1.5;
+  color: var(--c-ink-soft);
+}
+
+@media (max-width: 620px) {
+  .form-aside { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+ * 8. ORDER STATUS
+ *
+ * order-status.php: the receipt a customer gets after ordering, and the
+ * lookup form when they come back later.
+ * --------------------------------------------------------------------------- */
+
+.status-page { padding-block: var(--sp-12) var(--sp-16); }
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+@media (max-width: 860px) { .status-grid { grid-template-columns: 1fr; } }
+
+.status-card { padding: clamp(var(--sp-6), 3vw, var(--sp-8)); min-width: 0; }
+
+.status-card__title {
+  font-size: 1.1rem;
+  color: var(--c-dark);
+  margin-bottom: var(--sp-6);
+}
+
+/* the progress track ---------------------------------------------------- */
+
+.track {
+  display: grid;
+  gap: 0;
+  margin-bottom: var(--sp-8);
+}
+
+.track__step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: .55rem 0;
+}
+
+
+.track__dot {
+  flex: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--c-surface);
+  border: 2px solid var(--c-line);
+  z-index: 1;
+}
+
+.track__label { font-size: .96rem; color: var(--c-ink-soft); }
+
+.track__step--done .track__dot { background: var(--c-teal); border-color: var(--c-teal); }
+.track__step--done .track__label { color: var(--c-ink); }
+
+.track__step--now .track__dot {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  box-shadow: 0 0 0 4px rgba(22,110,106,.18);
+}
+.track__step--now .track__label { color: var(--c-ink); font-weight: 600; }
+
+/* the facts under the track --------------------------------------------- */
+
+.status-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .5rem var(--sp-6);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--c-line);
+  font-size: .93rem;
+}
+.status-facts dt { color: var(--c-ink-soft); white-space: nowrap; }
+.status-facts dd { font-weight: 500; }
+
+/* the receipt ------------------------------------------------------------ */
+
+.receipt { display: grid; gap: .1rem; }
+
+.receipt__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding: .45rem 0;
+  font-size: .96rem;
+}
+.receipt__row + .receipt__row { border-top: 1px dashed #efe7db; }
+
+.receipt__qty   { color: var(--c-teal); font-weight: 700; }
+.receipt__money { font-weight: 600; white-space: nowrap; }
+
+.status-again { margin-top: var(--sp-8); }
+
+.status-lookup {
+  padding: clamp(var(--sp-6), 3vw, var(--sp-8));
+  max-width: 460px;
+}
+
+.order-note--warn {
+  color: var(--c-bad-ink);
+  font-weight: 600;
+}
+
+/* the - n + control on each cart line */
+.cart__step {
+  grid-column: 2 / span 2;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .3rem;
+}
+
+.cart__btn {
+  width: 1.65rem; height: 1.65rem;
+  flex: none;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,.08);
+  border: 0;
+  border-radius: 50%;
+  color: #e3d9cb;
+  font: inherit;
+  font-size: .95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.cart__btn:hover { background: var(--c-accent); color: #fff; }
+
+.cart__count {
+  min-width: 1.1rem;
+  text-align: center;
+  font-size: .9rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ===========================================================================
+ * 9. THE LANDING PAGE (index.php)
+ *
+ * Hero, the three cards, the dark teal About band with the map, the hours
+ * list and the closing call to action. Nothing in here is used by any other
+ * page, so it all lives together at the bottom of the file.
+ * ======================================================================== */
+
+/* two button sizes the landing page needs ------------------------------- */
+
+.button--lg { padding: 1.05rem 2.1rem; font-size: 1.05rem; }
+
+
+
+
+/* ---------- the three things you can do ---------- */
+
+.strip-section { padding-block: clamp(var(--sp-8), 3.5vw, 3.5rem) var(--sp-16); }
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-5);
+  list-style: none;
+}
+
+.strip__card {
+  position: relative;
+  padding: var(--sp-8);
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.strip__card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(15,122,116,.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.strip__num {
+  display: inline-grid;
+  place-items: center;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: var(--c-teal-soft);
+  border: 1px solid rgba(15,122,116,.28);
+  color: var(--c-teal);
+  font-size: .85rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.strip__title {
+  margin-top: var(--sp-5);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+  color: var(--c-ink);
+}
+.strip__text {
+  margin-top: var(--sp-2);
+  color: var(--c-ink-soft);
+  line-height: 1.6;
+}
+.strip__go {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin-top: var(--sp-5);
+  color: var(--c-teal);
+  font-weight: 700;
+  font-size: .95rem;
+  text-decoration: none;
+}
+.strip__go span { transition: transform .15s ease; }
+.strip__go:hover { color: var(--c-teal-deep); }
+.strip__go:hover span { transform: translateX(3px); }
+
+
+
+/* ---------- the map card ---------- */
+
+.mapcard {
+  background: #fff;
+  border-radius: calc(var(--radius) + 6px);
+  overflow: hidden;
+  box-shadow: 0 30px 70px rgba(2,24,23,.4);
+}
+
+.mapcard__frame {
+  position: relative;
+  /* a fixed shape, so the card does not jump about while the tiles load */
+  aspect-ratio: 16 / 11;
+  background: var(--c-raised);
+}
+.mapcard__map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+/* shown when content.php has no map block */
+.mapcard__none {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--c-ink-soft);
+}
+
+/* our own pin, sitting over the middle of the map */
+.mapcard__pin {
+  position: absolute;
+  top: 50%; left: 50%;
+  translate: -50% -100%;
+  display: grid;
+  place-items: center;
+  width: 44px; height: 44px;
+  color: #fff;
+  filter: drop-shadow(0 6px 10px rgba(2,24,23,.45));
+  pointer-events: none;
+}
+.mapcard__pin svg {
+  width: 100%; height: 100%;
+  fill: var(--c-teal);
+}
+
+.mapcard__body { padding: var(--sp-7); }
+
+.mapcard__name {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+  color: var(--c-ink);
+}
+.mapcard__address {
+  margin-top: .3rem;
+  font-style: normal;
+  color: var(--c-ink-soft);
+  line-height: 1.5;
+}
+
+
+.mapcard__rows {
+  display: grid;
+  gap: var(--sp-1);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--c-line);
+}
+.mapcard__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  color: var(--c-ink);
+  text-decoration: none;
+  font-size: .96rem;
+}
+.mapcard__row:hover { color: var(--c-teal-deep); }
+.mapcard__row-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--c-teal-soft);
+  color: var(--c-teal);
+}
+.mapcard__row-icon svg { width: 17px; height: 17px; }
+
+.mapcard__go { margin-top: var(--sp-5); }
+
+
+
+
+
+
+
+
+
+
+
+/* ---------- the landing page on smaller screens ---------- */
+
+@media (max-width: 1040px) {
+  .strip { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 980px) {
+  .hero__grid { grid-template-columns: 1fr; }
+  /* the plates are decoration — drop them rather than squash them */
+  .hero__art { display: none; }
+}
+
+@media (max-width: 560px) {
+  .hero__facts { gap: var(--sp-6); }
+  .hero__actions .button { width: 100%; }
+  .mapcard__body { padding: var(--sp-5); }
+}
+
+
+
+/* ===========================================================================
+ * 10. THE LANDING PAGE (index.php)
+ *
+ * A dark brown page with one big teal block on the right, a plate sitting
+ * across its edge, and the navigation along the top. Flat colour throughout
+ * — no gradients.
+ *
+ * All of it is scoped to body.is-landing, so the inner pages keep their
+ * white page and the rail down the side.
+ * ======================================================================== */
+
+body.is-landing { color: #d8ccbd; }
+/* the brown belongs on html for the same reason */
+html.landing { background: var(--c-dark); }
+
+/* ---------- hero ---------- */
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-block: clamp(var(--sp-10), 6vw, 4.5rem) clamp(var(--sp-12), 7vw, 5rem);
+}
+
+/* the teal block: full height, down the right, curved on its left edge */
+.hero__slab {
+  position: absolute;
+  z-index: -1;
+  top: 0; bottom: 0;
+  right: 0;
+  width: 42%;
+  background: var(--c-teal-lit);
+  border-radius: 300px 0 0 300px;
+}
+
+.hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .95fr);
+  align-items: center;
+  gap: clamp(var(--sp-8), 4vw, 4rem);
+}
+
+.hero__kicker {
+  font-size: 1.05rem;
+  color: #ded3c4;          /* lifted: it sits over the blurred dishes */
+}
+
+.hero__title {
+  margin-top: var(--sp-2);
+  font-size: clamp(3rem, 7vw, 5.4rem);
+  line-height: 1;
+  letter-spacing: -.04em;
+  font-weight: 900;
+  color: #fff;
+}
+
+.hero__lede {
+  margin-top: var(--sp-4);
+  max-width: 40ch;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #a9e9e2;          /* lifted: it sits over the blurred dishes */
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-8);
+}
+
+/* the outlined pill from the reference */
+.button--outline {
+  background: transparent;
+  border-color: rgba(255,255,255,.55);
+  color: #fff;
+}
+.button--outline:hover {
+  background: #fff;
+  border-color: #fff;
+  color: var(--c-dark);
+  box-shadow: none;
+}
+.button--plain {
+  background: var(--c-teal-lit);
+  border-color: var(--c-teal-lit);
+  color: var(--c-dark);
+}
+.button--plain:hover {
+  background: #7fd0c8;
+  border-color: #7fd0c8;
+  color: var(--c-dark);
+  box-shadow: none;
+}
+
+/* ---------- the little dish cards along the bottom ---------- */
+
+.picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: clamp(var(--sp-10), 5vw, 3.5rem);
+  list-style: none;
+}
+
+.picks__link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: .55rem .9rem .55rem .55rem;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background .16s ease, border-color .16s ease;
+}
+.picks__link:hover {
+  background: rgba(255,255,255,.13);
+  border-color: var(--c-teal-lit);
+}
+
+.picks__thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(91,189,180,.22);
+  /* the teal letter only made 4.45:1 against its own tint */
+  color: #fff;
+  font-family: "Anton", var(--f-display);
+  font-size: 1.1rem;
+}
+
+.picks__text { display: grid; }
+.picks__name {
+  font-size: .9rem;
+  font-weight: 800;
+  color: #fff;
+}
+.picks__meta {
+  font-size: .74rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #a9e9e2;          /* lifted: it sits over the blurred dishes */
+}
+
+/* ---------- the plate ---------- */
+
+.hero__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 440px;
+  /* the plate hangs left out of this column, so let it */
+  overflow: visible;
+}
+
+.plate-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 430px);
+  aspect-ratio: 1;
+  /* pulled left so the plate straddles the edge of the teal block, the way
+     it does in the reference, instead of sitting wholly inside it */
+  translate: -35% 0;
+}
+
+/* the thin ring the plate sits inside */
+.plate-art__ring {
+  position: absolute;
+  inset: -6%;
+  border: 1px solid rgba(28,20,14,.35);
+  border-radius: 50%;
+}
+
+.plate-art__disc {
+  display: grid;
+  place-items: center;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #fff;
+  border: 10px solid #fff;
+  box-shadow: 0 30px 70px rgba(10,6,3,.45);
+}
+.plate-art__disc img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+.plate-art__letter {
+  font-family: "Anton", var(--f-display);
+  font-size: clamp(5rem, 12vw, 9rem);
+  line-height: 1;
+  color: var(--c-dark);
+}
+
+/* ---------- the two counts on the teal ---------- */
+
+.stats {
+  position: absolute;
+  right: 0; bottom: 0;
+  display: flex;
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.stats__item {
+  display: grid;
+  gap: .15rem;
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--c-dark);
+  border-radius: var(--radius);
+}
+.stats__label {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-teal-lit);
+}
+.stats__value {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+}
+.stats__value span {
+  margin-left: .2rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #c3b5a4;
+}
+
+/* ---------- the rail down the right edge ---------- */
+
+.edgerail {
+  position: absolute;
+  top: 50%; right: 0;
+  translate: 0 -50%;
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+  background: var(--c-dark);
+  border-radius: 14px 0 0 14px;
+  list-style: none;
+}
+.edgerail__dot {
+  display: grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  color: #d8ccbd;
+  text-decoration: none;
+  transition: background .16s ease, color .16s ease;
+}
+.edgerail__dot:hover { background: var(--c-teal-lit); color: var(--c-dark); }
+.edgerail__dot svg { width: 17px; height: 17px; }
+
+/* ---------- the three cards ---------- */
+
+/* the cards sat flush against the hero; this drops them down a little so
+   the two blocks read as separate */
+body.is-landing .strip-section { padding-block: clamp(var(--sp-8), 3.5vw, 3.5rem) var(--sp-12); }
+body.is-landing .strip__card {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: none;
+}
+body.is-landing .strip__card:hover {
+  background: rgba(255,255,255,.1);
+  border-color: var(--c-teal-lit);
+  box-shadow: none;
+  transform: translateY(-3px);
+}
+body.is-landing .strip__num {
+  background: rgba(169,233,226,.18);
+  border-color: rgba(169,233,226,.45);
+  /* its own tint sits on a translucent card on the dishes; white is the
+     only value with room at the bottom of that stack */
+  color: #fff;
+}
+body.is-landing .strip__title { color: #fff; }
+body.is-landing .strip__text  { color: #ded3c4; }
+body.is-landing .strip__go    { color: #a9e9e2; }   /* over the dishes */
+body.is-landing .strip__go:hover { color: #fff; }
+
+
+
+/* ---------- hours ---------- */
+
+body.is-landing .section-eyebrow { color: #a9e9e2; }   /* over the dishes */
+body.is-landing .section-title   { color: #fff; }
+
+
+   
+
+
+
+/* ---------- the footer ---------- */
+
+/* The footer is teal. --c-teal only carries white text at 4.5:1, so this
+   uses the deeper one, which carries the quieter lines too. */
+body.is-landing .site-footer {
+  background: var(--c-teal-deep);
+  border-top: 0;
+}
+body.is-landing .site-footer h3,
+body.is-landing .site-footer dt { color: #fff; }
+body.is-landing .site-footer,
+body.is-landing .site-footer p,
+body.is-landing .site-footer dd,
+body.is-landing .site-footer address { color: #e4f0ef; }
+body.is-landing .site-footer a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+body.is-landing .site-footer a:hover { color: #d6f1ee; }
+body.is-landing .site-footer__base {
+  color: #cfe7e5;
+  border-top: 1px solid rgba(255,255,255,.2);
+}
+
+/* ---------- smaller screens ---------- */
+
+@media (max-width: 1040px) { .strip { grid-template-columns: 1fr; } }
+
+@media (max-width: 980px) {
+  .hero__grid { grid-template-columns: 1fr; }
+  .hero__slab { width: 100%; border-radius: 0; top: auto; height: 46%; }
+  .plate-art  { translate: none; }
+  .hero__art { min-height: 340px; }
+  .stats { position: static; justify-content: center; margin-top: var(--sp-6); }
+  .edgerail { display: none; }
+}
+
+@media (max-width: 560px) {
+  .hero__actions .button { width: 100%; }
+  .picks { flex-direction: column; }
+  .picks__link { width: 100%; }
+  .mapcard__body { padding: var(--sp-5); }
+}
+
+/* ===========================================================================
+ * THE NAVIGATION: A BAR ON THE LANDING PAGE, A RAIL EVERYWHERE ELSE
+ * ======================================================================== */
+
+@media (min-width: 961px) {
+
+  body.is-landing .sidebar {
+    inset: 0 0 auto 0;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.is-landing .sidebar__inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-6);
+    min-height: 0;
+    max-width: var(--wrap);
+    margin-inline: auto;
+    padding: var(--sp-5) clamp(var(--sp-4), 3vw, var(--sp-10));
+  }
+
+  body.is-landing .sidebar__panel {
+    flex: 0 1 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-4);
+    width: auto;
+    margin-bottom: 0;
+    padding: var(--sp-2) var(--sp-3);
+    background: transparent;
+    border-radius: 999px;
+    box-shadow: none;
+  }
+
+  body.is-landing .nav { width: auto; }
+  body.is-landing .nav__list { grid-auto-flow: column; gap: var(--sp-1); }
+
+  body.is-landing .nav__link {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: .5rem;
+    width: auto;
+    padding: .5rem .9rem;
+    border-radius: 999px;
+    color: #ded3c4;      /* lifted, for the dishes behind the bar */
+  }
+  body.is-landing .nav__link:hover { background: rgba(255,255,255,.08); color: #fff; }
+  body.is-landing .nav__icon { display: none; }
+  body.is-landing .nav__text { font-size: .92rem; }
+
+  body.is-landing .nav__link.is-here { background: none; color: #a9e9e2; }
+
+  body.is-landing .sidebar__foot {
+    flex-direction: row;
+    margin-top: 0;
+    padding-top: 0;
+    gap: var(--sp-2);
+  }
+  body.is-landing .sidebar__dot { background: rgba(255,255,255,.08); color: #d8ccbd; }
+  body.is-landing .sidebar__dot:hover { background: var(--c-teal-lit); color: var(--c-dark); }
+
+
+  body.is-landing .brand { margin: 0; }
+
+  body.is-landing .rail-toggle { display: none; }
+
+  body.is-landing .shell { margin-left: 0; padding-top: 112px; }
+
+  /* a retract saved on another page must not hide the top bar */
+  body.is-landing.is-rail-closed .sidebar { transform: none; }
+  body.is-landing.is-rail-closed .shell   { margin-left: 0; }
+
+  /* =========================================================================
+   * THE NAVIGATION SLIDING BETWEEN ITS TWO SHAPES
+   *
+   * Going out to another page, the bar closes in to the left corner and the
+   * rail grows down the margin from that same corner. Coming back home, the
+   * rail collapses upward and the bar opens out again. Four halves of two
+   * movements, each the exact reverse of the other.
+   *
+   * The leaving half is marked on <body> by script.js. The arriving half is
+   * marked on <html> by the small script in the <head>, so it is already in
+   * place before the first paint.
+   * ====================================================================== */
+
+  @keyframes nav-bar-close { from { width: 100%; }             to { width: var(--sidebar-w); } }
+  @keyframes nav-bar-open  { from { width: var(--sidebar-w); } to { width: 100%; } }
+  @keyframes nav-rail-grow { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes nav-rail-rise { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 100% 0); } }
+
+  /* leaving home: the bar closes in to the corner */
+  body.is-landing.is-nav-leaving .sidebar {
+    overflow: hidden;
+    animation: nav-bar-close var(--nav-out) cubic-bezier(.65,0,.35,1) forwards;
+  }
+  /* arriving home: it opens back out from the corner */
+  html.nav-out body.is-landing .sidebar {
+    overflow: hidden;
+    animation: nav-bar-open var(--nav-in) cubic-bezier(.33,1,.68,1) both;
+  }
+  /* while the bar is narrow its row must not re-centre, or the labels swim */
+  body.is-landing.is-nav-leaving .sidebar__inner,
+  html.nav-out body.is-landing .sidebar__inner {
+    justify-content: flex-start;
+    margin-inline: 0;
+    width: var(--wrap);
+    max-width: none;
+  }
+
+  /* leaving an inner page for home: the rail collapses upward */
+  body.is-inner.is-nav-leaving .sidebar {
+    animation: nav-rail-rise var(--nav-out) cubic-bezier(.65,0,.35,1) forwards;
+  }
+  /* arriving on an inner page: it grows down the margin */
+  html.nav-in body.is-inner .sidebar {
+    animation: nav-rail-grow var(--nav-in) cubic-bezier(.33,1,.68,1) both;
+  }
+
+  /* The cover. It sits under the navigation, so the nav keeps moving in full
+     view while everything behind it is swapped out. */
+  html.nav-in  .pagefade,
+  html.nav-out .pagefade {
+    visibility: visible;
+    animation: pagefade-out var(--nav-in) ease forwards;
+  }
+  body.is-nav-leaving .pagefade {
+    visibility: visible;
+    animation: pagefade-in var(--nav-out) ease forwards;
+  }
+}
+
+@keyframes pagefade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pagefade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* Below the breakpoint every page uses the drawer, so the landing page only
+   matches the bar to its own colour and skips the slide. */
+@media (max-width: 960px) {
+  body.is-landing .topbar {
+    background: var(--c-dark);
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.is-landing.is-nav-leaving .sidebar,
+  body.is-inner.is-nav-arriving .sidebar,
+  body.is-inner.is-nav-arriving .shell { animation: none; }
+  body.is-landing.is-nav-leaving .shell { opacity: 1; transition: none; }
+}
+
+/* ===========================================================================
+ * THE COVER USED BETWEEN PAGES
+ *
+ * Sits above the page but BELOW the navigation (which is z-index 60), so the
+ * nav stays visible and moving while the document behind it is replaced.
+ * It is invisible and untouchable until a page change actually starts.
+ * ======================================================================== */
+
+.pagefade {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--c-dark);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* two pages of the same shape: no nav movement, just the cover */
+html.nav-fade .pagefade {
+  visibility: visible;
+  animation: pagefade-out var(--fade) ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagefade { display: none !important; }
+  .sidebar  { animation: none !important; }
+}
+
+/* ---------- the foot of the details form ----------------------------------
+   "Confirm order" on the receipt brings you here; this is the button that
+   actually places the order. */
+
+.details-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--c-line);
+}
+
+.details-card__note {
+  font-size: .95rem;
+  color: var(--c-ink-soft);
+}
+.details-card__note strong {
+  color: var(--c-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.details-card__go {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  color: #fff;
+}
+.details-card__go:hover {
+  background: var(--c-teal-deep);
+  border-color: var(--c-teal-deep);
+  color: #fff;
+}
+
+/* A moment of attention when you arrive from the receipt, so it is obvious
+   where "Confirm order" has taken you. */
+@keyframes details-notice {
+  from { box-shadow: 0 0 0 4px rgba(15,122,116,.35); }
+  to   { box-shadow: 0 0 0 4px rgba(15,122,116,0); }
+}
+.details-card.is-noticed,
+.step-card.is-noticed { animation: details-notice 1.2s ease forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .details-card.is-noticed,
+  .step-card.is-noticed { animation: none; }
+}
+
+@media (max-width: 560px) {
+  .details-card__foot { flex-direction: column; align-items: stretch; }
+  .details-card__go { width: 100%; }
+}
+
+/* ===========================================================================
+ * 11. THE FORMS: BROWN CARDS WITH TEAL CONTROLS
+ *
+ * Both forms you fill in — the order details and the whole reservation —
+ * are brown cards. Brown is the surface; teal is every part you touch: the
+ * required marks, the step numbers, where the cursor is, the table you have
+ * chosen, and the button that commits.
+ *
+ * One block serves both pages. .form-brown is on .details-card (order.php)
+ * and on each .step-card (reserve.php).
+ * ======================================================================== */
+
+.form-brown {
+  background: var(--c-dark);
+  border: 1px solid #3a2e24;
+  color: #e8dbcc;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ---------- headings on the brown ---------- */
+
+.form-brown .block__title,
+.form-brown .step { color: #fff; }
+.form-brown .block__sub { color: var(--c-teal-lit); }
+
+/* the numbered step marker */
+.form-brown .step__n {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  color: #fff;
+}
+
+/* ---------- labels ---------- */
+
+.form-brown .field__label { color: #e8dbcc; }
+.form-brown .field__hint  { color: #bdae9c; }
+/* The dark teal for a white card; the light one only where the card behind
+   it is brown. --c-teal-lit on white is 2.2:1. */
+.field__req {
+  margin-left: .15rem;
+  color: var(--c-teal);
+  font-weight: 700;
+}
+.form-brown .field__req { color: var(--c-teal-lit); }
+
+/* ---------- the fields themselves ---------- */
+
+.form-brown .field__counter { color: var(--c-teal-lit); }
+.form-brown .field__error   { color: #f0a79c; }
+
+.form-brown .field--bad .field__input,
+.form-brown .field--bad .field__select,
+.form-brown .field--bad .field__textarea {
+  border-color: #d9796c;
+  background: rgba(217,121,108,.12);
+}
+
+/* a date or time field draws its own picker icon; keep it visible on brown */
+.form-brown input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.75); }
+
+/* ---------- buttons on the brown ---------- */
+
+.form-brown .button {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  color: #fff;
+}
+.form-brown .button:hover {
+  background: var(--c-teal-lit);
+  border-color: var(--c-teal-lit);
+  color: var(--c-dark);
+  box-shadow: none;
+}
+
+/* ===========================================================================
+ * THE TABLE PICKER ON THE BROWN CARD (reserve.php, step 2)
+ * ======================================================================== */
+
+.form-brown .tables__legend { color: #bdae9c; }
+
+.form-brown .area__name { color: #fff; border-bottom-color: #3a2e24; }
+.form-brown .area__free { color: #bdae9c; }
+
+.form-brown .table-card {
+  background: rgba(255,255,255,.06);
+  border-color: #7d6e5d;
+}
+.form-brown .table-card__label { color: #fff; }
+.form-brown .table-card__seats { color: #bdae9c; }
+.form-brown .table-card__state { color: var(--c-teal-lit); }
+
+/* The state class is built at run time — table-card--<?= $state ?> — so it
+   never appears literally in the markup. Do not prune these. */
+.table-card--taken,
+.table-card--small { background: var(--c-raised); cursor: not-allowed; }
+.table-card--taken:hover,
+.table-card--small:hover { border-color: var(--c-line); transform: none; }
+
+.form-brown .table-card--taken,
+.form-brown .table-card--small { background: rgba(255,255,255,.03); border-color: #4a3d31; }
+.form-brown .table-card--taken .table-card__label,
+.form-brown .table-card--small .table-card__label { color: #bdae9c; }
+.form-brown .table-card--taken .table-card__state { color: #b5a893; }
+.form-brown .table-card--small .table-card__state { color: #d8b858; }
+
+.form-brown .table-card__input:checked + .table-card {
+  border-color: var(--c-teal-lit);
+  background: rgba(91,189,180,.18);
+  box-shadow: 0 0 0 3px rgba(91,189,180,.3);
+}
+
+.form-brown .dot--free  { background: var(--c-teal-lit); }
+.form-brown .dot--taken { background: #b5a893; }
+.form-brown .dot--small { background: #d8b858; }
+
+/* ---------- the order page's details card ---------- */
+
+.details-card { padding: 0; overflow: hidden; }
+
+.details-card > .block__head {
+  margin: 0;
+  padding: var(--sp-6) clamp(var(--sp-6), 2.5vw, var(--sp-8));
+  border-bottom: 3px solid var(--c-teal);
+}
+.details-card .form-grid { padding: clamp(var(--sp-6), 2.5vw, var(--sp-8)); }
+
+.details-card__foot {
+  margin-top: 0;
+  padding: var(--sp-6) clamp(var(--sp-6), 2.5vw, var(--sp-8));
+  background: rgba(0,0,0,.25);
+  border-top: 1px solid #3a2e24;
+}
+.details-card__note { color: #bdae9c; }
+.details-card__note strong { color: #fff; }
+
+/* The note beside the time field was --c-ink-soft, which is 2.8:1 on the
+   brown card. */
+.form-brown .form-aside { color: #bdae9c; }
+
+/* The booking button sits on the dark stub, and the default button is that
+   same dark brown — it measured 1.00:1 against its own background, which is
+   to say invisible. Teal reads at 3.5:1 against the stub with white text at
+   5.2:1 on it. */
+.stub .button {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  color: #fff;
+}
+.stub .button:hover {
+  background: var(--c-teal-lit);
+  border-color: var(--c-teal-lit);
+  color: var(--c-dark);
+  box-shadow: none;
+}
+
+/* The foot of a form card that sits inside its own padding (the reservation
+   details step). The order page's details card runs edge to edge and has its
+   own .details-card__foot instead. */
+.form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-6);
+  border-top: 1px solid #3a2e24;
+}
+.form-foot__note { font-size: .95rem; color: #bdae9c; }
+.form-foot__note strong { color: #fff; }
+
+@media (max-width: 560px) {
+  .form-foot { flex-direction: column; align-items: stretch; }
+  .form-foot .button { width: 100%; }
+}
+
+/* ===========================================================================
+ * GIVING THE TWO FORMS SOME DEPTH
+ *
+ * They were flat: a brown rectangle with outlined boxes on it. The fix is
+ * light and shadow rather than more colour — the card catches a highlight
+ * along its top edge, the fields sit in wells recessed into it, and focusing
+ * one lifts it out. No gradients.
+ * ======================================================================== */
+
+.form-brown {
+  border-radius: 18px;
+  border-color: #3a2e24;
+  /* a hairline of light along the top edge, and a real shadow under the card */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 1px 2px rgba(0,0,0,.3),
+    0 18px 50px rgba(0,0,0,.4);
+}
+
+/* ---------- labels read as small caps, which gives the form a rhythm ---- */
+
+.form-brown .field__label {
+  margin-bottom: .55rem;
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: #c9b9a4;
+}
+.form-brown .field__hint {
+  font-size: .72rem;
+  letter-spacing: .04em;
+  text-transform: none;
+  color: #bdae9c;
+}
+
+/* ---------- the fields sit in wells cut into the card ------------------- */
+
+.form-brown .field__input,
+.form-brown .field__select,
+.form-brown .field__textarea {
+  padding: .95rem 1.05rem;
+  background: rgba(0,0,0,.18);
+  border-color: #7d6e5d;
+  border-radius: 11px;
+  color: #fff;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.35);
+  transition: background .18s ease, border-color .18s ease,
+              box-shadow .18s ease, transform .18s ease;
+}
+
+/* focus lifts the field out of its well */
+.form-brown .field__input:focus,
+.form-brown .field__select:focus,
+.form-brown .field__textarea:focus {
+  background: rgba(255,255,255,.1);
+  border-color: var(--c-teal-lit);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,.2),
+    0 0 0 3px rgba(91,189,180,.28),
+    0 6px 16px rgba(0,0,0,.3);
+}
+
+/* hovering a field hints that it is live, before you commit to clicking */
+.form-brown .field__input:hover:not(:focus),
+.form-brown .field__select:hover:not(:focus),
+.form-brown .field__textarea:hover:not(:focus) { border-color: #a3917b; }
+
+.form-brown .field__input::placeholder,
+.form-brown .field__textarea::placeholder { color: #b3a593; }
+
+/* ---------- native controls inside a dark field -------------------------
+   The fields above set color:#fff, and a <select>'s drop-down list and a
+   date input's calendar are drawn by the browser, not by us — they inherit
+   that white text but keep the system's white popup, so the choices came
+   out white on white and the Time field looked empty when opened.
+
+   color-scheme tells the browser this control is dark, which repaints the
+   popup, the calendar and their icons to match. The explicit option colours
+   below it are for the engines that ignore color-scheme on the popup. */
+.form-brown .field__input,
+.form-brown .field__select,
+.form-brown .field__textarea { color-scheme: dark; }
+
+.form-brown .field__select option {
+  background: #2a1f16;
+  color: #fff;
+}
+/* A slot the kitchen cannot cook in time is still listed, so you can see it
+   exists — greyed, and it must stay readable: 4.6:1 on the popup. */
+.form-brown .field__select option:disabled { color: #9b8b79; }
+
+/* The native select arrow is a system colour and vanishes on the brown, so
+   we draw our own chevron and make room for it. */
+.form-brown .field__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.9rem;
+  background-image:
+    linear-gradient(45deg,  transparent 50%, var(--c-teal-lit) 50%),
+    linear-gradient(135deg, var(--c-teal-lit) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.35rem) calc(50% + 2px),
+    calc(100% - 1.05rem) calc(50% + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+/* The gradients above replace the well's flat fill, so put it back.
+ *
+ * And the chevron has to be re-stated for :focus. The shared focus rule
+ * further up uses the `background` SHORTHAND, which resets background-image
+ * to none — and being .form-brown .field__select:focus it outranks the
+ * two-class rule above, so without this the arrow disappeared the moment
+ * the field was focused. Same specificity, declared later, so it wins. */
+.form-brown .field__select { background-color: rgba(0,0,0,.18); }
+.form-brown .field__select:focus {
+  background-color: rgba(255,255,255,.1);
+  background-image:
+    linear-gradient(45deg,  transparent 50%, var(--c-teal-lit) 50%),
+    linear-gradient(135deg, var(--c-teal-lit) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.35rem) calc(50% + 2px),
+    calc(100% - 1.05rem) calc(50% + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* The date input's calendar button is a dark glyph on a dark well. */
+.form-brown .field__input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
+  cursor: pointer;
+  opacity: .85;
+}
+.form-brown .field__input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* ---------- the step number gets a ring instead of a flat disc ---------- */
+
+.form-brown .step__n {
+  box-shadow: 0 0 0 4px rgba(15,122,116,.22), 0 4px 10px rgba(0,0,0,.35);
+}
+.form-brown .step {
+  padding-bottom: var(--sp-5);
+  border-bottom: 1px solid #3a2e24;
+}
+
+/* ---------- the order page's header band ---------- */
+
+.details-card > .block__head {
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
+}
+
+/* ---------- the feet sit in their own recess ---------- */
+
+.details-card__foot {
+  background: rgba(0,0,0,.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  border-top: 1px solid #3a2e24;
+}
+.form-foot {
+  margin-left: calc(-1 * clamp(var(--sp-6), 3vw, var(--sp-8)));
+  margin-right: calc(-1 * clamp(var(--sp-6), 3vw, var(--sp-8)));
+  margin-bottom: calc(-1 * clamp(var(--sp-6), 3vw, var(--sp-8)));
+  padding: var(--sp-6) clamp(var(--sp-6), 3vw, var(--sp-8));
+  background: rgba(0,0,0,.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  border-top: 1px solid #3a2e24;
+  border-radius: 0 0 17px 17px;
+}
+
+/* the committing button gets a little weight of its own */
+.form-brown .button--lg {
+  box-shadow: 0 4px 14px rgba(15,122,116,.4);
+}
+.form-brown .button--lg:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(15,122,116,.5);
+}
+
+/* ---------- a bad field should be obvious, not just outlined ------------ */
+
+.form-brown .field--bad .field__input,
+.form-brown .field--bad .field__select,
+.form-brown .field--bad .field__textarea {
+  border-color: #d9796c;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.35), 0 0 0 3px rgba(217,121,108,.22);
+}
+
+ * THE ABOUT SECTION
+ *
+ * The story on the left, the map card on the right in its own column — the
+ * map keeps the white card, the rounded corners and the shadow it always
+ * had. What changed is the left: instead of a plain list, the three things
+ * that matter are numbered down a teal trail.
+ * ======================================================================== */
+
+.about {
+  padding-block: clamp(var(--sp-12), 7vw, 5.5rem);
+  scroll-margin-top: var(--sp-6);
+}
+
+.about__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: clamp(var(--sp-8), 4vw, 4.5rem);
+  align-items: start;
+}
+
+.about__title {
+  margin-top: var(--sp-2);
+  font-size: clamp(2.1rem, 4.6vw, 3.4rem);
+  line-height: 1.06;
+  letter-spacing: -.03em;
+  font-weight: 900;
+  color: #fff;
+}
+.about__title-em { display: block; color: #a9e9e2; }   /* over the dishes */
+
+.about__lede {
+  margin-top: var(--sp-5);
+  max-width: 48ch;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #e4dad0;
+}
+
+/* the trail --------------------------------------------------------------
+   A numbered run down a teal line. The line is drawn behind the numbers by
+   a pseudo-element, so it needs no extra markup and cannot be mistaken for
+   content by a screen reader. */
+
+.trail {
+  position: relative;
+  margin-top: clamp(var(--sp-8), 3vw, var(--sp-10));
+  display: grid;
+  gap: var(--sp-6);
+  list-style: none;
+}
+/* the line: from the middle of the first number to the middle of the last */
+.trail::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 21px;
+  bottom: 21px;
+  width: 2px;
+  background: rgba(91,189,180,.3);
+}
+
+.trail__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: start;
+  gap: var(--sp-5);
+}
+
+.trail__node {
+  display: grid;
+  place-items: center;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--c-teal);
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  /* a ring in the page colour, so the line appears to pass behind the disc */
+  box-shadow: 0 0 0 5px var(--c-dark);
+}
+
+.trail__title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: #fff;
+}
+.trail__text p {
+  margin-top: .2rem;
+  line-height: 1.6;
+  color: #ded3c4;          /* lifted: it sits over the blurred dishes */
+}
+
+.about__picks { margin-top: clamp(var(--sp-8), 3vw, var(--sp-10)); }
+.about__picks .picks__thumb svg { width: 18px; height: 18px; }
+
+/* the map keeps its own card; it only needs a deeper shadow on a dark page */
+.about .mapcard { box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+
+/* ---------- smaller screens ---------- */
+
+@media (max-width: 980px) {
+  .about__grid { grid-template-columns: 1fr; }
+}
+
+/* ===========================================================================
+ * THE DISH LIST ON THE ORDER PAGE
+ *
+ * The same rows as the menu — photo, name, description, price — with a
+ * stepper on the end. A dish reads better as a line you can scan than as a
+ * small card you have to decode.
+ * ======================================================================== */
+
+.dishes {
+  display: grid;
+  gap: var(--sp-2);
+  list-style: none;
+}
+
+.dish {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.dish:hover { border-color: #cbb9a4; box-shadow: var(--shadow); }
+
+/* the one you have picked */
+.dish.is-chosen {
+  border-color: var(--c-teal);
+  background: var(--c-teal-soft);
+  box-shadow: 0 0 0 2px rgba(15,122,116,.18);
+}
+
+.dish__photo {
+  width: 112px; height: 112px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--c-raised);
+}
+.dish__photo--none {
+  display: grid;
+  place-items: center;
+  font-family: "Anton", var(--f-display);
+  font-size: 2rem;
+  color: var(--c-accent);
+}
+
+.dish__text { min-width: 0; }
+
+.dish__name {
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+  line-height: 1.25;
+  color: var(--c-ink);
+}
+.dish__name label { cursor: pointer; }
+
+.dish__desc {
+  margin-top: .2rem;
+  font-size: .88rem;
+  line-height: 1.45;
+  color: var(--c-ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dish__price {
+  font-size: 1.05rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-accent);
+  white-space: nowrap;
+}
+
+/* the count that appears once a dish is in the order */
+.dish__badge {
+  display: grid;
+  place-items: center;
+  min-width: 26px; height: 26px;
+  padding: 0 .4rem;
+  border-radius: 999px;
+  background: var(--c-teal);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 800;
+}
+
+.dish-grid__empty {
+  padding: var(--sp-8);
+  border: 1px dashed var(--c-line);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--c-ink-soft);
+}
+
+/* ---------------------------------------------------------------------------
+ * THE STEPPER
+ *
+ * One pill holding − [n] +. The buttons are 40px so they are comfortable on
+ * a phone, and the number uses tabular figures so the pill does not change
+ * width as you count up.
+ * ------------------------------------------------------------------------ */
+
+.qty {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding: 3px;
+  background: var(--c-raised);
+  /* 3.1:1 against the row. --c-line is 1.3:1, which is not a visible edge,
+     and a stepper is a control whose boundary has to be seen. */
+  border: 1px solid #a39076;
+  border-radius: 999px;
+}
+
+.qty__input {
+  width: 2.6rem;
+  padding: .3rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.qty__input:focus {
+  outline: 2px solid var(--c-teal);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+/* the browser's own spinners would sit on top of our buttons */
+.qty--stepped .qty__input::-webkit-outer-spin-button,
+.qty--stepped .qty__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.qty--stepped .qty__input { -moz-appearance: textfield; appearance: textfield; }
+
+.qty__btn {
+  width: 40px; height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  /* a shade darker than the pill's own edge, because this one is measured
+     against the pill's warm fill rather than the white row */
+  border: 1px solid #9c8972;
+  border-radius: 50%;
+  color: var(--c-ink);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease,
+              border-color .15s ease, transform .12s ease;
+}
+.qty__btn:hover:not(:disabled) {
+  background: var(--c-teal);
+  border-color: var(--c-teal);
+  color: #fff;
+}
+.qty__btn:active:not(:disabled) { transform: scale(.92); }
+.qty__btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* on a chosen row the pill sits on the teal wash, so it needs its own edge */
+.dish.is-chosen .qty { background: #fff; border-color: rgba(15,122,116,.35); }
+
+@media (max-width: 760px) {
+  .dish {
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    row-gap: var(--sp-3);
+  }
+  .dish__photo { width: 88px; height: 88px; }
+  /* the stepper drops to its own line, under the text */
+  .qty { grid-column: 2 / -1; justify-self: start; }
+  .dish__badge { grid-row: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qty__btn:active:not(:disabled) { transform: none; }
+}
+
+/* ===========================================================================
+ * THE LOGO
+ *
+ * Two parts: a box mark with a bite taken out of one corner, and a wordmark
+ * in which the first E is three stacked bars rather than a letter.
+ *
+ * The bars are drawn, not typed, so the shape is the same in every browser.
+ * wordmark() in src/functions.php builds the markup and puts the plain name
+ * on an aria-label, so a screen reader hears "Maridadi Eat".
+ * ======================================================================== */
+
+.wordmark {
+  display: inline-flex;
+  /* baseline, not centre: the bars have to sit on the same line the
+     capitals stand on */
+  align-items: baseline;
+  font-family: "Poppins", var(--f-display);
+  font-weight: 700;        /* the reference weight: heavy, not black */
+  letter-spacing: -.005em;
+  line-height: 1;
+  white-space: nowrap;
+  color: #e8e8e8;          /* the soft off-white of the reference */
+}
+
+/* The E: three bars.
+   Measured from Poppins itself with canvas metrics — a capital in this face
+   is .694em tall and an E advances .548em, so the block matches the cap
+   height exactly and is only a little wider than the letter it replaces.
+   inline-block with overflow hidden puts its bottom edge on the baseline,
+   which is what lines the bars up with the letters either side. */
+.wordmark__e {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  width: .66em;
+  height: .694em;
+  margin: 0 .085em;
+}
+/* In the reference the three bars are the same length, and bar and gap are
+   the same weight: three bars plus two gaps fill the cap height, so each is
+   .694em / 5 = .1388em. */
+.wordmark__e i {
+  position: absolute;
+  left: 0; right: 0;
+  height: .1388em;
+  border-radius: .069em;  /* fully rounded ends, as in the reference */
+  background: currentColor;
+}
+.wordmark__e i:nth-child(1) { top: 0; }
+.wordmark__e i:nth-child(2) { top: 50%; transform: translateY(-50%); }
+.wordmark__e i:nth-child(3) { bottom: 0; }
+
+/* ---------- the box mark ---------- */
+
+.brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-6) 0 var(--sp-5, 1.25rem);
+  /* the colour now belongs to the SVG, which paints with currentColor */
+  background: none;
+  color: #000;
+  border-radius: 0;
+  text-decoration: none;
+  box-shadow: none;
+  transition: color .16s ease, transform .16s ease;
+}
+.brand:hover { background: none; color: #1a1a1a; transform: translateY(-1px); }
+
+/* the box and its letter, held together so the wordmark can sit beside them */
+.brand__box-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 54px; height: 54px;
+}
+
+.brand__box {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  /* No shadow and no gradient of any kind: flat black. */
+}
+
+/* the outline is invisible wherever the page is pale enough to show the
+   black square on its own */
+.brand__edge { fill: none; }
+
+.brand__mark {
+  position: relative;      /* above the box */
+  /* Anton: a condensed display face, deliberately unlike the Poppins of
+     the wordmark beside it. */
+  font-family: "Anton", var(--f-display);
+  font-size: 1.9rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: .01em;
+  color: #fff;
+  /* nudged away from the bitten corner */
+  transform: translate(-3px, 2px);
+}
+
+/* Black on the brown page is 1.2:1 — the square would simply vanish — so
+   there it carries a hairline edge instead of a shadow. */
+body.is-landing .brand { background: none; color: #000; }
+body.is-landing .brand:hover { background: none; color: #1a1a1a; }
+body.is-landing .brand__box { filter: none; }
+/* the outline shows only here, and it traces the bite because it is part of
+   the drawing rather than a ring around the box */
+body.is-landing .brand__edge { fill: rgba(255,255,255,.42); }
+body.is-landing .brand__mark { color: #fff; }
+
+/* ---------- where the wordmark is used ---------- */
+
+.topbar__brand { font-size: 1.05rem; }
+.topbar__brand .wordmark { font-size: 1.05rem; }
+
+.site-footer__brand .wordmark { font-size: 1.35rem; }
+
+/* ===========================================================================
+ * THE MENU PILL TURNING TEAL
+ *
+ * On the landing page the navigation sits over the hero with no background
+ * of its own. The moment the page scrolls, the pill that holds the links
+ * takes a teal — just the pill, curved, with the logo left alone outside it
+ * — so the links stay readable over whatever has scrolled under them. It
+ * keeps that teal while the bar is closing in on the way to another page.
+ * ======================================================================== */
+
+@media (min-width: 961px) {
+
+  body.is-landing .sidebar__panel {
+    border-radius: 999px;            /* curved, and it stays curved */
+    transition: background   var(--nav-morph) var(--nav-morph-ease),
+                box-shadow   var(--nav-morph) var(--nav-morph-ease),
+                border-color var(--nav-morph) var(--nav-morph-ease);
+  }
+
+  body.is-landing.is-scrolled .sidebar__panel,
+  body.is-landing.is-nav-leaving .sidebar__panel {
+    background: var(--c-teal-deep);
+    border-color: rgba(255,255,255,.18);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  /* on teal the warm grey labels drop to 3.7:1, so they lift to a pale teal */
+  body.is-landing.is-scrolled .nav__link,
+  body.is-landing.is-nav-leaving .nav__link { color: #cfe7e5; }
+  body.is-landing.is-scrolled .nav__link:hover,
+  body.is-landing.is-nav-leaving .nav__link:hover { color: #fff; background: rgba(255,255,255,.12); }
+  body.is-landing.is-scrolled .nav__link.is-here,
+  body.is-landing.is-nav-leaving .nav__link.is-here { color: #fff; background: rgba(255,255,255,.14); }
+
+  /* the round buttons live inside the pill, so they move with it */
+  body.is-landing.is-scrolled .sidebar__dot,
+  body.is-landing.is-nav-leaving .sidebar__dot { background: rgba(255,255,255,.16); color: #fff; }
+  body.is-landing.is-scrolled .sidebar__foot,
+  body.is-landing.is-nav-leaving .sidebar__foot { border-left-color: rgba(255,255,255,.22); }
+
+  /* The logo sits outside the pill. As the page scrolls and the pill takes
+     its teal, the logo slides out to the very edge of the window so it is
+     clear of the hero and whatever scrolls up behind it. */
+  body.is-landing .sidebar__inner {
+    transition: max-width var(--nav-morph) var(--nav-morph-ease),
+                padding   var(--nav-morph) var(--nav-morph-ease);
+  }
+  body.is-landing.is-scrolled .sidebar__inner,
+  body.is-landing.is-nav-leaving .sidebar__inner {
+    /* 100vw, not none: "none" is a keyword, and a keyword cannot be
+       interpolated — the bar used to jump to full width in one frame. */
+    max-width: 100vw;
+    padding-left: var(--sp-3);
+    padding-right: var(--sp-4);
+  }
+  /* and it condenses a little, so it covers less of the column it is
+     sitting over — the content column starts at the same left margin, so
+     moving alone only buys the width of the padding. */
+  body.is-landing .brand { transition: gap var(--nav-morph) var(--nav-morph-ease); }
+  /* the mark was missing from this list, so the M snapped while the box
+     around it glided */
+  body.is-landing .brand__box-wrap,
+  body.is-landing .brand__mark,
+  body.is-landing .brand__word {
+    transition: width     var(--nav-morph) var(--nav-morph-ease),
+                height    var(--nav-morph) var(--nav-morph-ease),
+                font-size var(--nav-morph) var(--nav-morph-ease);
+  }
+
+  body.is-landing.is-scrolled .brand,
+  body.is-landing.is-nav-leaving .brand { gap: var(--sp-2); }
+  body.is-landing.is-scrolled .brand__box-wrap,
+  body.is-landing.is-nav-leaving .brand__box-wrap { width: 42px; height: 42px; }
+  body.is-landing.is-scrolled .brand__mark,
+  body.is-landing.is-nav-leaving .brand__mark { font-size: 1.5rem; }
+  body.is-landing.is-scrolled .brand__word,
+  body.is-landing.is-nav-leaving .brand__word { font-size: 1.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* the whole movement, not just the pill */
+  body.is-landing .sidebar__panel,
+  body.is-landing .sidebar__inner,
+  body.is-landing .brand,
+  body.is-landing .brand__box-wrap,
+  body.is-landing .brand__mark,
+  body.is-landing .brand__word { transition: none; }
+}
+
+
+
+/* ---------- the wordmark beside the box ---------- */
+
+/* On the inner pages the rail is 104px wide, so only the box fits. */
+.brand__word { display: none; }
+
+@media (min-width: 961px) {
+  /* The landing page's bar runs the width of the page, so the full logo
+     shows there — this is the one most people see. */
+  body.is-landing .brand__word {
+    display: inline-flex;
+    font-size: 1.5rem;
+    letter-spacing: -.01em;
+  }
+}
+
+/* On a phone the top bar carries the wordmark on every page. */
+@media (max-width: 960px) {
+  .topbar__brand .wordmark { display: inline-flex; font-size: 1.1rem; }
+}
+
+/* ===========================================================================
+ * OPENING HOURS
+ *
+ * One card per day, with the opening and closing time split into their own
+ * labelled halves. The old version put "7:00 am - 9:00 pm" on a single
+ * dotted line, which is a lot of small type to read at a glance.
+ * ======================================================================== */
+
+.hours { padding-block: clamp(var(--sp-12), 7vw, 5.5rem); }
+
+.hours__head { margin-bottom: clamp(var(--sp-8), 3vw, var(--sp-10)); }
+
+.hours__title {
+  margin-top: var(--sp-2);
+  font-size: clamp(2.1rem, 4.6vw, 3.4rem);
+  line-height: 1.06;
+  letter-spacing: -.03em;
+  font-weight: 900;
+  color: #fff;
+}
+
+.hours__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-5);
+  list-style: none;
+}
+
+.hours__card {
+  padding: clamp(var(--sp-6), 2.4vw, var(--sp-8));
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.hours__days {
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #a9e9e2;
+}
+
+/* the two halves, with a rule between them */
+.hours__span {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+}
+.hours__slot { display: grid; gap: .2rem; }
+.hours__label {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #ded3c4;
+}
+.hours__time {
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  white-space: nowrap;
+}
+.hours__time--single { margin-top: var(--sp-5); }
+
+.hours__dash {
+  width: 26px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(169,233,226,.5);
+}
+
+/* the practical details, under the cards */
+.hours__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-5);
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-8);
+  border-top: 1px solid rgba(255,255,255,.16);
+  list-style: none;
+}
+.hours__fact { display: grid; gap: .3rem; }
+.hours__fact-label {
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #a9e9e2;
+}
+.hours__fact-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+}
+a.hours__fact-value { text-decoration: underline; text-underline-offset: 3px; }
+a.hours__fact-value:hover { color: #a9e9e2; }
+
+@media (max-width: 560px) {
+  .hours__span { gap: var(--sp-3); }
+}
+
+/* ===========================================================================
+ * THE HERO ARRIVING
+ *
+ * Every time the home page loads, the teal block is uncovered from its right
+ * edge inward while the plate rolls in from off screen, turning as it comes
+ * — the photograph turns with it, because the photograph is inside the disc.
+ *
+ * These are CSS animations with no JavaScript behind them, which is what
+ * makes it happen on every load rather than only on a first visit: the
+ * browser runs them whenever it builds the page, including a reload or a
+ * return through the Back button.
+ *
+ * The hero clips its overflow, so the plate starting off to the right never
+ * widens the page.
+ * ======================================================================== */
+
+/* The teal is uncovered at the same rate the circle travels, and a beat
+   behind it, so the circle is always the thing in front — it looks as if the
+   teal is being dragged in rather than appearing on its own. */
+@keyframes hero-slab-in {
+  from { clip-path: inset(0 0 0 100%); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes hero-plate-in {
+  from {
+    transform: translateX(115vw) rotate(-300deg);
+    opacity: 0;
+  }
+  35%  { opacity: 1; }
+  to {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* the ring follows the plate, a touch behind it */
+@keyframes hero-ring-in {
+  from { transform: scale(.4); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+body.is-landing .hero__slab {
+  /* the same length and the same curve as the circle, started a little after
+     it, so the teal edge trails the circle the whole way and never leads */
+  animation: hero-slab-in 1.25s .18s cubic-bezier(.22, .68, .3, 1) both;
+}
+
+body.is-landing .plate-art {
+  /* the resting -35% pull stays on the `translate` property, which applies
+     before `transform` — so the animation can use transform freely without
+     losing the offset that sits the plate across the teal edge */
+  animation: hero-plate-in 1.25s cubic-bezier(.22, .68, .3, 1) both;
+}
+
+body.is-landing .plate-art__ring {
+  animation: hero-ring-in .7s .55s cubic-bezier(.33, 1, .68, 1) both;
+}
+
+/* Used for a moment by script.js to rewind the entrance when the page comes
+   back from the browser's cache, where a CSS animation would not re-run. */
+body.replay .hero__slab,
+body.replay .plate-art,
+body.replay .plate-art__ring { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.is-landing .hero__slab,
+  body.is-landing .plate-art,
+  body.is-landing .plate-art__ring { animation: none; }
+}
+
+
+/* ===========================================================================
+   PAYMENT AND TRACKING
+   Added with the payment screen. Two palettes in play: the pale cards use
+   --c-teal-ink for teal text (the lighter teals do not reach 4.5:1 on white),
+   the brown panel uses --c-teal-lit.
+   =========================================================================== */
+
+/* a narrower column, for pages that are a single train of thought --------- */
+.wrap--narrow { max-width: 1000px; }
+
+/* a quieter second button beside a solid one ----------------------------- */
+.button--ghost {
+  background: transparent;
+  color: var(--c-ink);
+  /* 3:1 against white — a button's edge IS its affordance, so it has to
+     clear the same bar as any other UI boundary. */
+  border: 1px solid #a39076;
+}
+.button--ghost:hover { background: rgba(0,0,0,.04); border-color: var(--c-ink-soft); }
+
+/* a button that reads as a link ------------------------------------------ */
+.linkbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: .9rem;
+  color: var(--c-teal-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.linkbtn:hover { color: var(--c-accent); }
+
+/* ---------------------------------------------------------- the three steps */
+
+.payflow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-5);
+  margin-bottom: var(--sp-6);
+  font-size: .86rem;
+  color: var(--c-ink-soft);
+}
+.payflow__step {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.payflow__step--done { color: var(--c-teal-ink); }
+.payflow__step--now  { color: var(--c-ink); font-weight: 700; }
+
+.payflow__tick {
+  display: grid;
+  place-items: center;
+  width: 19px; height: 19px;
+  border-radius: 50%;
+  background: var(--c-teal);
+  color: #fff;
+  font-size: .7rem;
+  line-height: 1;
+}
+.payflow__dot {
+  width: 19px; height: 19px;
+  border-radius: 50%;
+  border: 3px solid var(--c-teal);
+  box-shadow: 0 0 0 3px rgba(15,122,116,.16);
+}
+
+/* ------------------------------------------------------- the payment screen */
+
+.paygrid {
+  display: grid;
+  /* The summary is the smaller of the two and reads first on a phone, but
+     on a wide screen the methods deserve the room. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: var(--sp-6);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .paygrid { grid-template-columns: 1fr; }
+}
+
+.paysum { padding: var(--sp-6); }
+.paysum__title,
+.paymethods__title,
+.status-lookup__title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-bottom: var(--sp-5);
+}
+.paysum__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .4rem var(--sp-5);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--c-line);
+  font-size: .92rem;
+}
+.paysum__facts dt { color: var(--c-ink-soft); }
+.paysum__facts dd { font-weight: 600; text-align: right; }
+
+.paymethods { padding: var(--sp-6); }
+.paymethods__form { display: grid; gap: var(--sp-4); }
+
+/* one choosable method -------------------------------------------------- */
+
+.paymethod { display: block; cursor: pointer; }
+
+/* The radio is hidden from sight but not from the keyboard or a screen
+   reader — it is still the control, it just has a box drawn for it. */
+.paymethod__radio {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+}
+
+.paymethod__box {
+  display: block;
+  padding: var(--sp-5);
+  border-radius: 13px;
+  border: 1px solid #7d6e5d;
+  background: rgba(0,0,0,.18);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.3);
+  transition: border-color .18s ease, background .18s ease,
+              box-shadow .18s ease, transform .18s ease;
+}
+.paymethod:hover .paymethod__box { border-color: #a3917b; }
+
+/* Checked is marked by the teal edge AND the filled tag, never by colour
+   alone — the same state has to be visible to somebody who cannot tell
+   teal from brown. */
+.paymethod__radio:checked + .paymethod__box {
+  border-color: var(--c-teal-lit);
+  background: rgba(91,189,180,.12);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,.18),
+    0 6px 16px rgba(0,0,0,.26);
+}
+/* Keyboard focus has to show even though the input itself is invisible. */
+.paymethod__radio:focus-visible + .paymethod__box {
+  outline: 3px solid var(--c-teal-lit);
+  outline-offset: 2px;
+}
+
+.paymethod__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: .3rem;
+}
+.paymethod__name { font-weight: 700; font-size: 1.04rem; color: #fff; }
+.paymethod__tag {
+  flex: none;
+  padding: .22rem .6rem;
+  border-radius: 999px;
+  background: var(--c-teal);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.paymethod__tag--quiet { background: rgba(255,255,255,.14); color: #e6dcd0; }
+.paymethod__desc { display: block; font-size: .91rem; color: #cdbfae; }
+
+/* the phone number that belongs to the M-Pesa choice */
+.paymethod__extra { margin: 0 0 var(--sp-2); padding-left: var(--sp-5); }
+
+/* ------------------------------------------------------------- waiting ---- */
+
+.paywait { text-align: center; padding: var(--sp-4) 0; }
+
+.paywait__spin {
+  display: block;
+  width: 42px; height: 42px;
+  margin: 0 auto var(--sp-5);
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.18);
+  border-top-color: var(--c-teal-lit);
+  animation: paywait-spin 1s linear infinite;
+}
+@keyframes paywait-spin { to { transform: rotate(360deg); } }
+
+/* Someone who has asked for less movement gets a still ring. */
+@media (prefers-reduced-motion: reduce) {
+  .paywait__spin { animation: none; border-top-color: var(--c-teal-lit); }
+}
+
+.paywait__title { font-size: 1.2rem; color: #fff; margin-bottom: var(--sp-3); }
+.paywait__text  { color: #d8ccbd; margin-bottom: var(--sp-4); }
+.paywait__text strong { color: #fff; }
+.paywait__note {
+  font-size: .88rem;
+  color: #b3a593;
+  margin-top: var(--sp-4);
+}
+.paywait__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  justify-content: center;
+  margin-top: var(--sp-5);
+}
+/* The ghost button sits on brown here, so its pale-page colours are wrong. */
+.paymethods .button--ghost { color: #fff; border-color: #a3917b; }
+.paymethods .button--ghost:hover { background: rgba(255,255,255,.08); }
+
+/* numbered M-Pesa instructions */
+.paysteps {
+  display: grid;
+  gap: .45rem;
+  max-width: 24rem;
+  margin: 0 auto var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: 12px;
+  background: rgba(0,0,0,.22);
+  text-align: left;
+  font-size: .92rem;
+  color: #d8ccbd;
+  counter-reset: paystep;
+  list-style: none;
+}
+.paysteps li { display: flex; gap: .6rem; }
+.paysteps li::before {
+  counter-increment: paystep;
+  content: counter(paystep);
+  flex: none;
+  width: 1.3rem;
+  color: var(--c-teal-lit);
+  font-weight: 700;
+}
+.paysteps strong { color: #fff; }
+
+/* the local-only shortcut ------------------------------------------------ */
+
+.devtool {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px dashed rgba(255,255,255,.2);
+}
+.devtool__label {
+  font-size: .76rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #b3a593;
+  margin-bottom: var(--sp-3);
+}
+
+/* ===================================================== tracking page ====== */
+
+.statushead {
+  padding: var(--sp-7) var(--sp-6);
+  margin-bottom: var(--sp-6);
+  border-radius: 18px;
+  background: var(--c-dark);
+  color: #fff;
+}
+.statushead--off { background: #40342b; }
+
+.statushead__ref {
+  font-size: .82rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #bdae9c;
+  margin-bottom: var(--sp-3);
+}
+.statushead__ref strong { color: var(--c-teal-lit); }
+
+/* The headline is the whole point of the page: it answers "what is
+   happening to my food" without being read past. */
+.statushead__title {
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1.15;
+  margin-bottom: var(--sp-3);
+}
+.statushead__next { color: #d8ccbd; max-width: 46ch; }
+
+.statushead__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+  list-style: none;
+}
+.schip {
+  padding: .5rem .85rem;
+  border-radius: 11px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.14);
+}
+.schip__k {
+  display: block;
+  font-size: .72rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #bdae9c;
+}
+.schip__v { display: block; font-weight: 700; font-size: .98rem; }
+.schip--good  { background: rgba(91,189,180,.16); border-color: rgba(91,189,180,.4); }
+.schip--good .schip__v { color: var(--c-teal-lit); }
+.schip--owing { background: rgba(201,116,58,.16); border-color: rgba(201,116,58,.42); }
+.schip--owing .schip__v { color: #e49a62; }
+
+/* the tracker, now two lines per step ----------------------------------- */
+
+/* Two lines per step means the dot has to sit at the top of the row, not
+   centred against both of them. */
+.track__step { align-items: flex-start; position: relative; }
+.track__dot { margin-top: .25rem; }
+
+/* A line joining the dots, so the four steps read as one path rather than
+   four unrelated bullets. Drawn from each step except the last. */
+.track__step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 8px;            /* half the dot, so it runs through the middle */
+  top: 1.1rem;
+  bottom: -.3rem;
+  width: 2px;
+  background: var(--c-line);
+}
+.track__step--done:not(:last-child)::before { background: var(--c-teal); }
+
+.track__body { padding-bottom: var(--sp-4); }
+.track__label { font-weight: 600; color: var(--c-ink); display: flex;
+                align-items: center; gap: .5rem; flex-wrap: wrap; }
+.track__means { font-size: .89rem; color: var(--c-ink-soft); margin-top: .12rem; }
+
+/* Steps still to come are dimmed, but "dimmed" still has to be readable. */
+.track__step--todo .track__label { color: var(--c-ink-soft); font-weight: 500; }
+.track__step--todo .track__means { color: #80705d; }
+
+.track__badge {
+  padding: .14rem .5rem;
+  border-radius: 999px;
+  background: var(--c-teal);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.track__live {
+  font-size: .84rem;
+  color: var(--c-ink-soft);
+  margin: calc(var(--sp-4) * -1) 0 var(--sp-6);
+}
+
+/* payment state on the receipt card ------------------------------------- */
+
+.paystate {
+  margin-top: var(--sp-5);
+  padding: var(--sp-5);
+  border-radius: 12px;
+  border: 1px solid var(--c-line);
+  background: var(--c-surface);
+}
+.paystate--good  { border-color: rgba(15,122,116,.4);  background: var(--c-teal-soft); }
+.paystate--owing { border-color: rgba(156,90,40,.35); background: #fdf6ef; }
+
+.paystate__line { font-weight: 600; display: flex; align-items: center; gap: .5rem; }
+.paystate__sub  { font-size: .88rem; color: var(--c-ink-soft); margin-top: .3rem; }
+.paystate__sub a { color: var(--c-teal-ink); font-weight: 600; }
+
+.paystate__tick {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--c-teal);
+  color: #fff;
+  font-size: .72rem;
+}
+
+/* the lookup card ------------------------------------------------------- */
+
+.status-lookup__again {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--c-line);
+}
+.status-lookup__sep { color: var(--c-ink-soft); }
+
+/* Six digits, spaced out so they can be checked against a text message. */
+.field__input--code {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: .4em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-again { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+
+/* what the order button leads to ---------------------------------------- */
+.details-card__after {
+  margin-top: var(--sp-3);
+  font-size: .86rem;
+  color: #bdae9c;
+  text-align: center;
+}
+
+
+/* ===========================================================================
+   THE KITCHEN SCREEN
+   A white working page, not a dark one. Tickets run DOWN the page in a single
+   column, full width — a stack you scroll through in due order, rather than a
+   grid you have to read in two directions to find the next thing to cook.
+   =========================================================================== */
+
+.kitchen-html { background: #fff; }
+
+.kitchen {
+  background: #fff;
+  color: var(--c-ink);
+  font-family: var(--f-body);
+  min-height: 100vh;
+}
+
+/* ---------------------------------------------------------------- sign in */
+
+.kgate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6);
+}
+.kgate__card {
+  width: 100%;
+  max-width: 25rem;
+  padding: clamp(var(--sp-6), 5vw, var(--sp-8));
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.kgate__title { font-size: 1.6rem; margin-bottom: var(--sp-2); }
+.kgate__lead { color: var(--c-ink-soft); margin-bottom: var(--sp-6); }
+
+.kgate__steps {
+  display: grid;
+  gap: var(--sp-4);
+  margin: var(--sp-5) 0 0;
+  padding-left: 1.3rem;
+  color: var(--c-ink-soft);
+  font-size: .94rem;
+}
+.kgate__steps code {
+  display: inline-block;
+  margin-top: .3rem;
+  padding: .3rem .55rem;
+  border-radius: 6px;
+  background: var(--c-raised);
+  color: var(--c-teal-ink);
+  font-size: .86rem;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------- the top bar */
+
+.kbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-5);
+  padding: var(--sp-4) clamp(var(--sp-4), 2.5vw, var(--sp-7));
+  background: #fff;
+  border-bottom: 1px solid var(--c-line);
+}
+.kbar__title { font-size: 1.15rem; letter-spacing: .02em; }
+.kbar__clock { font-size: .84rem; color: var(--c-ink-soft); }
+
+/* three counts, legible across a room */
+.ktally { display: flex; gap: var(--sp-3); list-style: none; }
+.ktally__item {
+  min-width: 4.6rem;
+  padding: .45rem .7rem;
+  border-radius: 11px;
+  text-align: center;
+  background: var(--c-raised);
+  border: 1px solid var(--c-line);
+}
+.ktally__n { display: block; font-size: 1.5rem; font-weight: 800; line-height: 1.05; }
+.ktally__k {
+  display: block;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-ink-soft);
+}
+/* Tinted, not filled: a white page with three blocks of solid colour in the
+   bar reads as an advert. The number carries the colour. */
+.ktally__item--new     { background: #fdf3ea; border-color: #e8c9a8; }
+.ktally__item--new .ktally__n     { color: #8a4e1f; }
+.ktally__item--cooking { background: #fdf6e6; border-color: #e6cf9c; }
+.ktally__item--cooking .ktally__n { color: #7a5812; }
+.ktally__item--ready   { background: var(--c-teal-soft); border-color: #a5d5d1; }
+.ktally__item--ready .ktally__n   { color: var(--c-teal-ink); }
+
+.kbar__right { display: flex; align-items: center; gap: var(--sp-5); }
+
+.kscope {
+  display: flex;
+  gap: .25rem;
+  padding: .2rem;
+  border-radius: 999px;
+  background: var(--c-raised);
+}
+.kscope__link {
+  padding: .4rem .85rem;
+  border-radius: 999px;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--c-ink-soft);
+  text-decoration: none;
+}
+.kscope__link:hover { color: var(--c-ink); }
+.kscope__link.is-on { background: var(--c-teal); color: #fff; }
+
+/* ---------------------------------------------------------- the open board */
+
+/* Capped and centred. Full-bleed tickets on a wide monitor leave the dishes
+   on the far left and the money on the far right, and a cook reads neither. */
+.kmain {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(var(--sp-5), 2.5vw, var(--sp-7));
+}
+.kmain .msg { margin-bottom: var(--sp-5); }
+
+.kempty {
+  padding: var(--sp-8) var(--sp-5);
+  text-align: center;
+  color: var(--c-ink-soft);
+  font-size: 1.05rem;
+  background: var(--c-raised);
+  border: 1px dashed var(--c-line);
+  border-radius: 14px;
+}
+
+/* ONE COLUMN. Tickets stack downwards in the order the food is needed. */
+.kboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+/* Exactly the site's .card — same surface, same hairline, same radius, same
+   shadow — so a ticket is recognisably the same object as a dish card or the
+   order summary. No coloured rail down the side: urgency is carried by the
+   chip in the head, which says the minutes in words and so survives being
+   printed, photocopied or read by somebody who cannot tell red from brown. */
+.kticket {
+  overflow: hidden;            /* so the head's tint follows the rounded corner */
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Finished and cancelled stay readable but stop competing for attention. */
+.kticket--completed,
+.kticket--cancelled { background: var(--c-raised); box-shadow: none; }
+.kticket--completed .kticket__dish,
+.kticket--cancelled .kticket__dish { font-weight: 500; color: var(--c-ink-soft); }
+
+/* ---- the head strip ---- */
+
+.kticket__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--c-raised);
+  border-bottom: 1px solid var(--c-line);
+}
+/* The one place a status still tints a surface: a late ticket has to be
+   findable while scrolling, and the chip alone is too small for that. */
+.kticket--late .kticket__head { background: var(--c-bad-bg); }
+
+.kticket__ref {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+}
+.kticket__state {
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #ece5db;
+  color: #4a3c2e;
+}
+.kticket--new .kticket__state       { background: #f6e0c9; color: #8a4e1f; }
+.kticket--preparing .kticket__state { background: #f8ead0; color: #7a5812; }
+.kticket--ready .kticket__state     { background: var(--c-teal-soft); color: var(--c-teal-ink); }
+
+/* pushed to the right-hand end of the strip */
+.kticket__when {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .5rem;
+  font-size: .92rem;
+  color: var(--c-ink-soft);
+}
+.kticket__when strong {
+  font-size: 1.06rem;
+  color: var(--c-ink);
+  font-variant-numeric: tabular-nums;
+}
+.kticket__rel {
+  padding: .14rem .5rem;
+  border-radius: 999px;
+  background: #ece5db;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #4a3c2e;
+}
+/* Late and imminent say the minutes out loud — a kitchen cannot rely on
+   colour alone, so the chip carries the words AND the tint. */
+.kticket--late .kticket__rel { background: #f7d9d4; color: var(--c-bad-ink); }
+.kticket--now  .kticket__rel { background: #f8e3c2; color: #7a4a10; }
+.kticket__day {
+  padding: .14rem .5rem;
+  border-radius: 5px;
+  background: #ece5db;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #4a3c2e;
+}
+
+/* ---- the body: dishes on the left, the counter's details on the right ---- */
+
+.kticket__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--sp-5) var(--sp-7);
+  padding: var(--sp-5);
+}
+@media (max-width: 680px) {
+  .kticket__body { grid-template-columns: 1fr; gap: var(--sp-4); }
+}
+
+.kticket__items { display: grid; gap: .45rem; list-style: none; }
+.kticket__items li { display: flex; gap: .7rem; align-items: baseline; }
+.kticket__qty {
+  flex: none;
+  min-width: 2.1rem;
+  font-weight: 800;
+  color: var(--c-teal-ink);
+  font-variant-numeric: tabular-nums;
+}
+.kticket__dish { font-size: 1.08rem; font-weight: 600; }
+
+.kticket__notes {
+  margin-top: var(--sp-4);
+  padding: .55rem .75rem;
+  border-radius: 8px;
+  background: #fdf6e6;
+  border-left: 3px solid #c98a2e;
+  font-size: .92rem;
+  color: #3d3225;
+}
+.kticket__notes-k {
+  display: block;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #7a5812;
+  font-weight: 700;
+}
+
+/* the side column */
+.kticket__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  font-size: .92rem;
+}
+@media (min-width: 681px) {
+  /* A hairline rather than a box: it separates the two halves without
+     drawing another container inside the ticket. */
+  .kticket__side { border-left: 1px solid var(--c-line); padding-left: var(--sp-6); }
+}
+
+.kticket__who dt {
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-ink-soft);
+  margin-bottom: .2rem;
+}
+.kticket__name { display: block; font-weight: 600; }
+.kticket__tel {
+  display: block;
+  margin-top: .1rem;
+  color: var(--c-teal-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+.kticket__tel:hover { text-decoration: underline; }
+.kticket__addr { display: block; margin-top: .25rem; color: var(--c-ink-soft); }
+
+.kticket__money {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-top: auto;            /* money sits at the bottom of the side column */
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--c-line);
+}
+.kticket__total { font-size: 1.12rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kpay {
+  padding: .22rem .6rem;
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 700;
+}
+.kpay--paid  { background: var(--c-teal-soft); color: var(--c-teal-ink); }
+.kpay--owing { background: #f6e0c9; color: #8a4e1f; }
+
+/* ---- the action row ---- */
+
+.kticket__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--c-raised);
+  border-top: 1px solid var(--c-line);
+}
+/* The primary action takes the room it needs; Cancel and History stay small,
+   so the button a cook wants is the obvious one to hit. */
+.kticket__acts form { flex: 0 1 auto; }
+
+/* Finger-sized. 48px is the smallest a target should be on a touch screen,
+   and this one gets pressed with the side of a thumb. */
+.kbtn {
+  min-height: 48px;
+  padding: .7rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease;
+}
+.kbtn--go { background: var(--c-teal); color: #fff; }
+.kbtn--go:hover { background: var(--c-teal-deep); }
+.kbtn--cash {
+  background: var(--c-surface);
+  color: #8a4e1f;
+  /* 3.08:1 against white. At #c9a781 it measured 2.25:1, and this border is
+     the button's only visible edge. */
+  border-color: #a39076;
+}
+.kbtn--cash:hover { background: #fdf3ea; border-color: #a97a4a; }
+.kbtn--off {
+  background: var(--c-surface);
+  color: var(--c-ink-soft);
+  /* 3.1:1 against white — this border is the button's only visible edge. */
+  border-color: #a39076;
+}
+.kbtn--off:hover { background: #fdf0ee; border-color: #c0392b; color: #8c2c1f; }
+
+.kbtn:focus-visible { outline: 3px solid var(--c-teal); outline-offset: 2px; }
+
+.kticket__closed { font-size: .9rem; color: var(--c-ink-soft); }
+
+/* history --------------------------------------------------------------- */
+
+.khist { margin-left: auto; font-size: .88rem; }
+.khist summary {
+  cursor: pointer;
+  padding: .4rem .2rem;
+  color: var(--c-ink-soft);
+  font-weight: 600;
+}
+.khist summary:hover { color: var(--c-ink); }
+.khist__list {
+  display: grid;
+  gap: .3rem;
+  margin: .5rem 0 0;
+  padding: var(--sp-4);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  list-style: none;
+  color: var(--c-ink-soft);
+}
+.khist__list li { display: flex; gap: .6rem; }
+.khist__list time {
+  color: var(--c-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.khist__who { margin-left: auto; color: #6b5c4a; }
+
+.kfoot {
+  margin-top: var(--sp-7);
+  text-align: center;
+  font-size: .84rem;
+  color: var(--c-ink-soft);
+}
+.kfoot a { color: var(--c-teal-ink); }
+
+/* An open kitchen board says so, permanently. Amber rather than red: it is a
+   deliberate setting, not a fault — but it is never allowed to be invisible. */
+.kopen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: 11px;
+  background: #fdf6e6;
+  border: 1px solid #e6cf9c;
+  border-left: 5px solid #c98a2e;
+  font-size: .9rem;
+  color: #3d3225;
+}
+.kopen__tag {
+  flex: none;
+  padding: .18rem .55rem;
+  border-radius: 999px;
+  background: #7a5812;
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.kopen strong { color: #8c2c1f; }
+.kopen code {
+  padding: .1rem .35rem;
+  border-radius: 5px;
+  background: #fff;
+  border: 1px solid #e6cf9c;
+  color: #7a5812;
+  font-size: .85em;
+}
+
+/* Printing a ticket should give the kitchen the paper copy, not the chrome. */
+@media print {
+  .kbar, .kticket__acts, .khist, .kfoot, .kopen { display: none; }
+  .kticket {
+    border: 1px solid #000;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .kticket__head { background: #fff; }
+  .kticket--completed, .kticket--cancelled { background: #fff; }
+}
+
+
+/* ===========================================================================
+   BREADCRUMBS
+   On every page except the home page. An ordered list in a <nav>, because the
+   order IS the meaning; the separators are aria-hidden so a screen reader
+   does not read out "slash" between every step.
+   =========================================================================== */
+
+.crumbs {
+  /* Sits above the page's own heading, inside the same column as the
+     content, so it lines up with whatever follows it. */
+  padding: var(--sp-5) clamp(var(--sp-4), 4vw, var(--sp-10)) 0;
+  font-size: .86rem;
+}
+.crumbs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .1rem .4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.crumbs__item {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.crumbs__link {
+  color: var(--c-ink-soft);
+  text-decoration: none;
+  /* A hit area tall enough to tap on a phone without making the row taller. */
+  padding: .25rem 0;
+  border-radius: 4px;
+}
+.crumbs__link:hover { color: var(--c-teal-ink); text-decoration: underline; }
+.crumbs__link:focus-visible {
+  outline: 2px solid var(--c-teal);
+  outline-offset: 3px;
+}
+.crumbs__sep { color: #9b8975; }   /* 3.37:1 — it is decoration, but a trail
+                                      whose separators you cannot see is a
+                                      row of unrelated words. */
+.crumbs__here { color: var(--c-ink); font-weight: 600; padding: .25rem 0; }
+
+/* The inner pages carry the rail's pull-in/pull-out button, and it is
+   position:fixed at the very top of the content column — exactly where the
+   trail starts. Without this the first crumb sits underneath it.
+ *
+ * 60px clears it in BOTH rail states, which is why one number does:
+ *   rail open   — shell starts at 104, button spans 116–150, so the trail
+ *                 needs 46px + a gap from the shell edge
+ *   rail closed — shell starts at 0, button spans 12–46, same 46px + a gap
+ *
+ * Below 961px the button is display:none and the trail can start at the
+ * normal page gutter. */
+@media (min-width: 961px) {
+  body.is-inner .crumbs { padding-left: 60px; }
+}
+
+/* On the dark pages the soft brown is too dark to read. */
+.kitchen .crumbs,
+.kitchen .crumbs__list { padding-left: 0; padding-right: 0; }
+.kitchen .crumbs { padding-top: 0; padding-bottom: var(--sp-5); }
+
+
+/* ===========================================================================
+   THE LOGO ON THE KITCHEN SCREEN
+   The same lockup as the rest of the site, scaled for a toolbar. Two things
+   have to be undone: .brand carries vertical margins meant for the sidebar,
+   and .brand__word is display:none everywhere except the landing page — so
+   the wordmark has to be switched back on explicitly, and recoloured, since
+   .wordmark is an off-white picked for dark panels.
+   =========================================================================== */
+
+.brand--kitchen {
+  margin: 0;
+  gap: var(--sp-3);
+  color: var(--c-darker);
+}
+.brand--kitchen .brand__box-wrap { width: 40px; height: 40px; }
+.brand--kitchen .brand__mark { font-size: 1.4rem; }
+
+.brand--kitchen .brand__word {
+  display: inline-flex;
+  font-size: 1.18rem;
+  /* 18.2:1 on white. The inherited #e8e8e8 would have been 1.2:1 — the
+     wordmark would have been there and invisible. */
+  color: var(--c-ink);
+}
+.brand--kitchen:hover .brand__word { color: var(--c-accent); }
+
+/* the bar: logo and heading on the left, as one group */
+.kbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+/* A divider between the mark and the page's own name, so "Kitchen" reads as
+   a section of the site rather than part of the restaurant's name. */
+.kbar__left > div {
+  padding-left: var(--sp-4);
+  border-left: 1px solid var(--c-line);
+}
+
+.kgate__brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--sp-6);
+}
+
+@media (max-width: 560px) {
+  /* On a phone the bar is tight: keep the mark, drop the wordmark, and let
+     the heading sit under it rather than beside it. */
+  .brand--kitchen .brand__word { display: none; }
+  .kbar__left > div { padding-left: var(--sp-3); }
+}
+
+
+/* ===========================================================================
+   ACCOUNTS
+   =========================================================================== */
+
+/* an informational message, beside the existing --ok and --bad */
+.msg--info {
+  background: var(--c-teal-soft);
+  border-color: #a5d5d1;
+  color: #15302e;
+}
+.msg--info .msg__icon {
+  background: var(--c-teal);
+  color: #fff;
+}
+
+/* the signed-in panel */
+.acct { padding: clamp(var(--sp-5), 3vw, var(--sp-7)); }
+.acct__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .55rem var(--sp-6);
+  font-size: .96rem;
+}
+.acct__facts dt { color: var(--c-ink-soft); white-space: nowrap; }
+.acct__facts dd { font-weight: 600; }
+.acct__note {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--c-line);
+  color: var(--c-ink-soft);
+  font-size: .92rem;
+}
+.acct__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+.acct__acts form { margin: 0; }
+
+
+/* ===========================================================================
+   MY ORDERS — the list that replaced the reference-and-code lookup
+   =========================================================================== */
+
+.mylist { display: flex; flex-direction: column; gap: var(--sp-4); list-style: none; }
+
+/* The whole row is the link: one large target instead of a small "view" at
+   the end of it, which matters most on the phone this is read on. */
+.myrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-4) var(--sp-5);
+  padding: var(--sp-5);
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.myrow:hover {
+  border-color: #c9b9a2;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+.myrow:focus-visible { outline: 3px solid var(--c-teal); outline-offset: 2px; }
+
+@media (max-width: 700px) {
+  .myrow { grid-template-columns: 1fr; gap: var(--sp-3); }
+}
+
+.myrow__main { min-width: 0; }
+.myrow__ref {
+  display: block;
+  font-weight: 800;
+  font-size: 1.04rem;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+}
+.myrow__dishes {
+  display: block;
+  margin-top: .15rem;
+  color: var(--c-ink-soft);
+  font-size: .92rem;
+  /* One line with an ellipsis: the list is for scanning, and the full order
+     is one tap away. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.myrow__meta { text-align: right; white-space: nowrap; }
+.myrow__when { display: block; font-size: .9rem; color: var(--c-ink-soft); }
+.myrow__total { display: block; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) {
+  .myrow__meta { text-align: left; }
+}
+
+.myrow__tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+.mytag {
+  padding: .22rem .6rem;
+  border-radius: 999px;
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  background: #ece5db;
+  color: #4a3c2e;
+}
+.mytag--new       { background: #f6e0c9;           color: #8a4e1f; }
+.mytag--preparing { background: #f8ead0;           color: #7a5812; }
+.mytag--ready     { background: var(--c-teal-soft); color: var(--c-teal-ink); }
+.mytag--completed { background: #ece5db;           color: #4a3c2e; }
+.mytag--cancelled { background: var(--c-bad-bg);   color: var(--c-bad-ink); }
+.mytag--paid      { background: var(--c-ok-bg);    color: var(--c-ok-ink); }
+.mytag--owing     { background: #f6e0c9;           color: #8a4e1f; }
+
+/* A live order gets a quiet teal edge, so an in-progress one stands out of a
+   long list of finished ones without shouting. */
+.myrow--live { border-left: 4px solid var(--c-teal); }
+
+.status-again--lead { margin-bottom: var(--sp-6); }
+
+/* the old reference-and-code route, folded away */
+.oldway {
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--c-line);
+}
+.oldway summary {
+  cursor: pointer;
+  color: var(--c-ink-soft);
+  font-size: .92rem;
+  font-weight: 600;
+  padding: .3rem 0;
+}
+.oldway summary:hover { color: var(--c-teal-ink); }
+.oldway .status-lookup { margin-top: var(--sp-4); }
+
+/* "Account" / "Guest" on a kitchen ticket */
+.kacct {
+  display: inline-block;
+  margin-left: .35rem;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  background: var(--c-teal-soft);
+  color: var(--c-teal-ink);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.kacct--guest { background: #ece5db; color: #4a3c2e; }
+
+/* the delete confirmation, inside the ticket it belongs to ---------------- */
+
+.kconfirm {
+  flex: 1 1 100%;
+  padding: var(--sp-4);
+  border-radius: var(--radius-sm);
+  background: var(--c-bad-bg);
+  border: 1px solid #e8b3ab;
+}
+.kconfirm__ask {
+  margin-bottom: var(--sp-3);
+  font-size: .9rem;
+  color: #5c2018;
+}
+.kconfirm__ask strong { color: var(--c-bad-ink); }
+.kconfirm__acts { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+
+/* The only destructive button on the site, so it is the only solid red one.
+   Everything else that could be mistaken for it is outlined. */
+.kbtn--danger {
+  background: #a33125;
+  color: #fff;
+  border-color: #a33125;
+}
+.kbtn--danger:hover { background: #87281e; border-color: #87281e; }
+
+/* "Keep it" and "Delete" are links styled as buttons, so they need the
+   button's own box back. */
+a.kbtn {
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+
+/* ===========================================================================
+   THE SIGN-IN AND REGISTER FORMS
+   No card and no panel. The fields sit on the page itself, in one centred
+   column, because the form IS the page — a box around it just draws a second
+   edge inside the first.
+   =========================================================================== */
+
+/* One column, centred, and narrow enough that the eye does not travel. The
+   register form's paired rows widen it a little; everything shares the same
+   left edge at every width, which is what makes a stack of fields read as
+   one list rather than several. */
+.authform,
+.authhead,
+.authswitch,
+.authmsg {
+  width: 100%;
+  max-width: 30rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.authhead { text-align: center; margin-bottom: var(--sp-7); }
+.authhead__title {
+  font-size: clamp(1.6rem, 4.5vw, 2.15rem);
+  line-height: 1.12;
+  margin-bottom: var(--sp-3);
+}
+.authhead__lead { color: var(--c-ink-soft); }
+
+.authmsg { margin-bottom: var(--sp-5); }
+
+/* the switch: two words with the live one underlined, not pills in a tray */
+.authswitch {
+  display: flex;
+  gap: var(--sp-6);
+  justify-content: center;
+  margin-bottom: var(--sp-8);
+  border-bottom: 1px solid var(--c-line);
+}
+.authswitch__tab {
+  position: relative;
+  padding: 0 .2rem var(--sp-4);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-ink-soft);
+  text-decoration: none;
+}
+.authswitch__tab:hover { color: var(--c-ink); }
+.authswitch__tab.is-on { color: var(--c-ink); font-weight: 700; }
+/* The marker sits ON the shared rule, so the two line up exactly. */
+.authswitch__tab.is-on::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--c-teal);
+}
+.authswitch__tab:focus-visible { outline: 2px solid var(--c-teal); outline-offset: 3px; }
+
+/* the form itself ------------------------------------------------------- */
+
+.authform { display: grid; gap: var(--sp-6); }
+
+/* Name+phone and the two passwords pair up on a wide screen and stack on a
+   narrow one. minmax(0,1fr) rather than 1fr so a long placeholder cannot
+   push the column wider than its share. */
+.authform__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-5) var(--sp-5);
+}
+@media (max-width: 560px) {
+  .authform__pair { grid-template-columns: 1fr; gap: var(--sp-6); }
+}
+
+.authfield { display: grid; gap: .4rem; }
+
+.authfield__label {
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--c-ink-soft);
+}
+
+/* Transparent, with a rule underneath instead of a box: the field belongs to
+   the page rather than sitting in a container of its own.
+   The rule is 2px at #8a7659 — 3.6:1 on white, where a boundary needs 3:1.
+   A 1px hairline at a lighter brown would look tidier and would fail. */
+.authfield__input {
+  width: 100%;
+  padding: .6rem .1rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid #8a7659;
+  border-radius: 0;
+  font: inherit;
+  font-size: 1.05rem;
+  color: var(--c-ink);
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.authfield__input::placeholder { color: #80705d; }   /* 4.6:1 */
+
+.authfield__input:hover { border-bottom-color: var(--c-ink-soft); }
+
+/* Focus thickens and colours the rule AND adds a soft wash, so the live
+   field is obvious without an outline box appearing out of nowhere. */
+.authfield__input:focus {
+  outline: none;
+  border-bottom-color: var(--c-teal);
+  box-shadow: 0 2px 0 0 var(--c-teal);
+  background: linear-gradient(to bottom, transparent 60%, rgba(15,122,116,.06));
+}
+
+/* A field with a problem says so in its rule as well as its text. */
+.authfield.is-bad .authfield__input { border-bottom-color: var(--c-bad-ink); }
+.authfield.is-bad .authfield__input:focus { box-shadow: 0 2px 0 0 var(--c-bad-ink); }
+
+.authfield__msg { font-size: .84rem; color: var(--c-ink-soft); }
+.authfield__msg--bad { color: var(--c-bad-ink); font-weight: 500; }
+
+/* show / hide ----------------------------------------------------------- */
+
+.authfield__pw { position: relative; display: block; }
+/* Room for the button, so a long password never runs underneath it. */
+.authfield__pw .authfield__input { padding-right: 4rem; }
+
+.pwtoggle {
+  position: absolute;
+  right: 0;
+  bottom: .35rem;
+  padding: .3rem .45rem;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--c-teal-ink);        /* 9.4:1 on white */
+  cursor: pointer;
+}
+.pwtoggle:hover { color: var(--c-accent); background: rgba(0,0,0,.04); }
+.pwtoggle:focus-visible { outline: 2px solid var(--c-teal); outline-offset: 2px; }
+/* Pressed state carried by weight and colour, not colour alone. */
+.pwtoggle[aria-pressed="true"] { color: var(--c-accent); }
+
+.authform__go { margin-top: var(--sp-2); }
+
+.authform__alt {
+  text-align: center;
+  font-size: .92rem;
+  color: var(--c-ink-soft);
+}
+.authform__alt a { color: var(--c-teal-ink); font-weight: 600; }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The site logo at icon size: the black square with a bite out of its top
+       corner, and the M drawn as a path rather than set in a font — a favicon
+       renders without the page's webfonts, so Anton would not be there. -->
+  <mask id="bite">
+    <rect width="64" height="64" fill="#fff"/>
+    <circle cx="60" cy="4" r="12" fill="#000"/>
+  </mask>
+  <rect width="64" height="64" rx="14" fill="#000" mask="url(#bite)"/>
+  <path fill="#fff" d="M17 46V20h9.5l5.5 12.5L37.5 20H47v26h-7.5V32.5L34.5 43h-5L24.5 32.5V46z"/>
+</svg>

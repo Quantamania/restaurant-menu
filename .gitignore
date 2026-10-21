@@ -2,3 +2,5 @@ src/config.php
 .vscode/
 .idea/
 .DS_Store
+src/secrets.php
+storage/

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en" class="kitchen-html">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>5 to cook — Kitchen</title>
+
+      <!-- Keeps a tablet on a shelf current without any script. 45 seconds is
+         short enough that a new order is noticed and long enough that it is
+         not fighting somebody pressing a button. Only on the live board:
+         refreshing the sign-in page would wipe a half-typed password. -->
+    <meta http-equiv="refresh" content="45">
+  
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+  <!-- The same faces as every other page. Without these the logo falls back
+       to a system sans: the wordmark loses Poppins 700 and reads thin, and
+       the M in the box loses Anton entirely. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@700;800&family=Roboto:wght@300;400;500;700;800;900&display=swap">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="kitchen">
+
+
+  <!-- ====================== the board ====================== -->
+  <header class="kbar">
+    <div class="kbar__left">
+      <!-- The full logo, same as the customer pages. It doubles as the way
+           back out to the site, which is the only link a cook needs here. -->
+      <a class="brand brand--kitchen" href="index.php" aria-label="Maridadi Eat"><span class="brand__box-wrap"><svg class="brand__box" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><mask id="brand-bite-bar"><rect width="64" height="64" fill="#fff"/><circle cx="60" cy="4" r="12" fill="#000"/></mask><mask id="brand-bite-bar-face"><rect width="64" height="64" fill="#fff"/><circle cx="60" cy="4" r="13.6" fill="#000"/></mask><rect class="brand__edge" width="64" height="64" rx="18" mask="url(#brand-bite-bar)"/><rect class="brand__face" x="1.6" y="1.6" width="60.8" height="60.8" rx="16.4" fill="currentColor" mask="url(#brand-bite-bar-face)"/></svg><span class="brand__mark" aria-hidden="true">M</span></span><span class="wordmark brand__word" role="img" aria-label="Maridadi Eat"><span aria-hidden="true">MARIDADI </span><span class="wordmark__e" aria-hidden="true"><i></i><i></i><i></i></span><span aria-hidden="true">AT</span></span></a>      <div>
+        <h1 class="kbar__title">Kitchen</h1>
+        <p class="kbar__clock">Wed 21 Oct, 3:02 pm</p>
+      </div>
+    </div>
+
+    <!-- Three numbers, big enough to read from across the room. -->
+    <ul class="ktally">
+      <li class="ktally__item ktally__item--new">
+        <span class="ktally__n">4</span>
+        <span class="ktally__k">Waiting</span>
+      </li>
+      <li class="ktally__item ktally__item--cooking">
+        <span class="ktally__n">1</span>
+        <span class="ktally__k">Cooking</span>
+      </li>
+      <li class="ktally__item ktally__item--ready">
+        <span class="ktally__n">2</span>
+        <span class="ktally__k">Ready</span>
+      </li>
+    </ul>
+
+    <div class="kbar__right">
+      <nav class="kscope" aria-label="Which orders to show">
+                  <a class="kscope__link is-on"
+             href="kitchen.php?scope=open"
+             aria-current="true">Open</a>
+                  <a class="kscope__link"
+             href="kitchen.php?scope=today"
+             >Today</a>
+                  <a class="kscope__link"
+             href="kitchen.php?scope=all"
+             >Recent</a>
+              </nav>
+
+          </div>
+  </header>
+
+  <main class="kmain">
+
+    <nav class="crumbs" aria-label="Breadcrumb"><ol class="crumbs__list"><li class="crumbs__item"><a class="crumbs__link" href="index.php">Home</a><span class="crumbs__sep" aria-hidden="true">/</span></li><li class="crumbs__item"><span class="crumbs__here" aria-current="page">Kitchen</span></li></ol></nav>
+          <!-- An open board is never a silent surprise. It says what is exposed
+           and how to close it, and it does not go away — a dismissible
+           warning about leaking customer data would just get dismissed. -->
+      <p class="kopen" role="status">
+        <span class="kopen__tag">No password</span>
+        <span>
+          Anyone who can reach this address can read every customer's name,
+          phone number and address, and can cancel orders.
+                    Set <code>'require_password' =&gt; true</code> in
+          <code>src/secrets.php</code> to ask for a password again.
+        </span>
+      </p>
+    
+    
+    
+      <div class="kboard">
+                  
+          <article class="kticket kticket--ready kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">MD-JN9FP2</span>
+              <span class="kticket__state">Ready</span>
+
+              <span class="kticket__when">
+                <strong>5:30 pm</strong>
+                                <span class="kticket__rel">in 2h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Beef Stew &amp; Ugali</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Chicken Pilau</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Dawa Tea</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Fresh Passion Juice</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Fried Tilapia</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Honey Pancakes</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Iced Mocha</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Kenyan Coffee</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Mandazi &amp; Masala Chai</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Nyama Choma Plate</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Smokies &amp; Eggs</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Spanish Omelette</span>
+                    </li>
+                                  </ul>
+
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Deliver to</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      michael Gaitho                                              <!-- Same order, kitchen side: says it belongs to an
+                             account, so the customer can be told "it is on
+                             your orders page" rather than hunting a code. -->
+                        <span class="kacct" title="Registered account: michaelgaitho47@gmail.com">Account</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254798600033">
+                      +254798600033                    </a>
+                                          <span class="kticket__addr">opposite Radiance accademy</span>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 3,250</span>
+                  <span class="kpay kpay--owing">
+                                          Unpaid
+                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-JN9FP2">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="completed">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Mark delivered                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-JN9FP2">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-JN9FP2">
+                  <input type="hidden" name="scope" value="open">
+                  <button class="kbtn kbtn--cash" type="submit" name="action" value="paid">
+                    Took payment
+                  </button>
+                </form>
+              
+              
+                                            <!-- A plain <details>, so the history is there when somebody
+                     asks "when did that go out?" without taking room on the
+                     board the rest of the time. No script needed. It sits at
+                     the end of the action row so it never pushes the buttons
+                     around when it is opened. -->
+                <details class="khist">
+                  <summary>History</summary>
+                  <ol class="khist__list">
+                                          <li>
+                        <time>2:32 pm</time>
+                        Waiting                        <span class="khist__who">customer</span>
+                      </li>
+                                          <li>
+                        <time>2:41 pm</time>
+                        Cooking                        <span class="khist__who">kitchen</span>
+                      </li>
+                                          <li>
+                        <time>2:41 pm</time>
+                        Ready                        <span class="khist__who">kitchen</span>
+                      </li>
+                                      </ol>
+                </details>
+                          </footer>
+
+          </article>
+                  
+          <article class="kticket kticket--preparing kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">MD-2WSLHB</span>
+              <span class="kticket__state">Cooking</span>
+
+              <span class="kticket__when">
+                <strong>5:30 pm</strong>
+                                <span class="kticket__rel">in 2h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Spanish Omelette</span>
+                    </li>
+                                  </ul>
+
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Collection</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      michael Gaitho                                              <!-- Same order, kitchen side: says it belongs to an
+                             account, so the customer can be told "it is on
+                             your orders page" rather than hunting a code. -->
+                        <span class="kacct" title="Registered account: michaelgaitho47@gmail.com">Account</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254798600033">
+                      +254798600033                    </a>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 180</span>
+                  <span class="kpay kpay--paid">
+                                          Paid                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-2WSLHB">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="ready">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Mark ready                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-2WSLHB">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+              
+              
+                                            <!-- A plain <details>, so the history is there when somebody
+                     asks "when did that go out?" without taking room on the
+                     board the rest of the time. No script needed. It sits at
+                     the end of the action row so it never pushes the buttons
+                     around when it is opened. -->
+                <details class="khist">
+                  <summary>History</summary>
+                  <ol class="khist__list">
+                                          <li>
+                        <time>2:42 pm</time>
+                        Waiting                        <span class="khist__who">customer</span>
+                      </li>
+                                          <li>
+                        <time>2:54 pm</time>
+                        Cooking                        <span class="khist__who">kitchen</span>
+                      </li>
+                                      </ol>
+                </details>
+                          </footer>
+
+          </article>
+                  
+          <article class="kticket kticket--ready kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">ZW-Q59PBE</span>
+              <span class="kticket__state">Ready</span>
+
+              <span class="kticket__when">
+                <strong>6:30 pm</strong>
+                                <span class="kticket__rel">in 3h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Honey Pancakes</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Mandazi &amp; Masala Chai</span>
+                    </li>
+                                  </ul>
+
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Collection</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      MIchael Gaitho                                              <!-- Same order, kitchen side: says it belongs to an
+                             account, so the customer can be told "it is on
+                             your orders page" rather than hunting a code. -->
+                        <span class="kacct" title="Registered account: michaelgaitho47@gmail.com">Account</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254798600033">
+                      +254798600033                    </a>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 300</span>
+                  <span class="kpay kpay--paid">
+                                          Paid                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="ZW-Q59PBE">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="completed">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Mark collected                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="ZW-Q59PBE">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+              
+              
+                                            <!-- A plain <details>, so the history is there when somebody
+                     asks "when did that go out?" without taking room on the
+                     board the rest of the time. No script needed. It sits at
+                     the end of the action row so it never pushes the buttons
+                     around when it is opened. -->
+                <details class="khist">
+                  <summary>History</summary>
+                  <ol class="khist__list">
+                                          <li>
+                        <time>11:35 am</time>
+                        Waiting                        <span class="khist__who">system</span>
+                      </li>
+                                          <li>
+                        <time>2:14 pm</time>
+                        Cooking                        <span class="khist__who">kitchen</span>
+                      </li>
+                                          <li>
+                        <time>2:18 pm</time>
+                        Ready                        <span class="khist__who">kitchen</span>
+                      </li>
+                                      </ol>
+                </details>
+                          </footer>
+
+          </article>
+                  
+          <article class="kticket kticket--new kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">MD-GDC979</span>
+              <span class="kticket__state">Waiting</span>
+
+              <span class="kticket__when">
+                <strong>6:30 pm</strong>
+                                <span class="kticket__rel">in 3h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Honey Pancakes</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Mandazi &amp; Masala Chai</span>
+                    </li>
+                                  </ul>
+
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Collection</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      MIchael Gaitho                                              <!-- Same order, kitchen side: says it belongs to an
+                             account, so the customer can be told "it is on
+                             your orders page" rather than hunting a code. -->
+                        <span class="kacct" title="Registered account: michaelgaitho47@gmail.com">Account</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254798600033">
+                      +254798600033                    </a>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 300</span>
+                  <span class="kpay kpay--owing">
+                                          M-Pesa pending
+                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-GDC979">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="preparing">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Start cooking                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-GDC979">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-GDC979">
+                  <input type="hidden" name="scope" value="open">
+                  <button class="kbtn kbtn--cash" type="submit" name="action" value="paid">
+                    Took payment
+                  </button>
+                </form>
+              
+              
+                                        </footer>
+
+          </article>
+                  
+          <article class="kticket kticket--new kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">MD-W97YS3</span>
+              <span class="kticket__state">Waiting</span>
+
+              <span class="kticket__when">
+                <strong>6:30 pm</strong>
+                                <span class="kticket__rel">in 3h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Honey Pancakes</span>
+                    </li>
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Mandazi &amp; Masala Chai</span>
+                    </li>
+                                  </ul>
+
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Collection</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      MIchael Gaitho                                              <!-- Same order, kitchen side: says it belongs to an
+                             account, so the customer can be told "it is on
+                             your orders page" rather than hunting a code. -->
+                        <span class="kacct" title="Registered account: michaelgaitho47@gmail.com">Account</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254798600033">
+                      +254798600033                    </a>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 300</span>
+                  <span class="kpay kpay--paid">
+                                          Paid · M-Pesa                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-W97YS3">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="preparing">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Start cooking                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-W97YS3">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+              
+              
+                                        </footer>
+
+          </article>
+                  
+          <article class="kticket kticket--new kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">MD-9JGNWR</span>
+              <span class="kticket__state">Waiting</span>
+
+              <span class="kticket__when">
+                <strong>6:30 pm</strong>
+                                <span class="kticket__rel">in 3h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">3&times;</span>
+                      <span class="kticket__dish">Honey Pancakes</span>
+                    </li>
+                                  </ul>
+
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Collection</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      michael Gaitho                                              <!-- Same order, kitchen side: says it belongs to an
+                             account, so the customer can be told "it is on
+                             your orders page" rather than hunting a code. -->
+                        <span class="kacct" title="Registered account: michaelgaitho47@gmail.com">Account</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254798600033">
+                      +254798600033                    </a>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 600</span>
+                  <span class="kpay kpay--owing">
+                                          Unpaid
+                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-9JGNWR">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="preparing">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Start cooking                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-9JGNWR">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="MD-9JGNWR">
+                  <input type="hidden" name="scope" value="open">
+                  <button class="kbtn kbtn--cash" type="submit" name="action" value="paid">
+                    Took payment
+                  </button>
+                </form>
+              
+              
+                                        </footer>
+
+          </article>
+                  
+          <article class="kticket kticket--new kticket--later">
+
+            <!-- One strip across the top: who it is, where it has got to, and
+                 when it is due. On a full-width ticket all three fit on one
+                 line, which is what makes a stack of them scannable. -->
+            <header class="kticket__head">
+              <span class="kticket__ref">ZW-DVATPC</span>
+              <span class="kticket__state">Waiting</span>
+
+              <span class="kticket__when">
+                <strong>12:30 pm</strong>
+                                  <span class="kticket__day">Thu 22 Oct</span>
+                                <span class="kticket__rel">in 21h</span>
+              </span>
+            </header>
+
+            <div class="kticket__body">
+
+              <!-- The dishes, biggest thing on the ticket: it is what the
+                   cook is actually reading. -->
+              <div class="kticket__main">
+                <ul class="kticket__items">
+                                      <li>
+                      <span class="kticket__qty">1&times;</span>
+                      <span class="kticket__dish">Chicken Pilau</span>
+                    </li>
+                                  </ul>
+
+                                  <p class="kticket__notes">
+                    <span class="kticket__notes-k">Note</span>
+                    It should arrive on time kindly                  </p>
+                              </div>
+
+              <!-- Everything the cook does not need while cooking, but the
+                   counter does when handing it over. -->
+              <div class="kticket__side">
+                <dl class="kticket__who">
+                  <dt>Collection</dt>
+                  <dd>
+                    <span class="kticket__name">
+                      Manuel Sultan                                              <span class="kacct kacct--guest" title="Placed before accounts existed">Guest</span>
+                                          </span>
+                    <a class="kticket__tel" href="tel:+254790241370">
+                      +254790241370                    </a>
+                                      </dd>
+                </dl>
+
+                <p class="kticket__money">
+                  <span class="kticket__total">KSh 450</span>
+                  <span class="kpay kpay--owing">
+                                          Unpaid
+                                      </span>
+                </p>
+              </div>
+
+            </div>
+
+            <!-- One form per action. Each carries the reference and the
+                 current scope, so the redirect afterwards comes back to the
+                 same view the cook was looking at. -->
+            <footer class="kticket__acts">
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="ZW-DVATPC">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="preparing">
+                  <button class="kbtn kbtn--go"
+                          type="submit" name="action" value="move">
+                    Start cooking                  </button>
+                </form>
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="ZW-DVATPC">
+                  <input type="hidden" name="scope" value="open">
+                  <input type="hidden" name="to" value="cancelled">
+                  <button class="kbtn kbtn--off"
+                          type="submit" name="action" value="move">
+                    Cancel                  </button>
+                </form>
+              
+                              <form method="post" action="kitchen.php">
+                  <input type="hidden" name="csrf" value="578c63803b66c38c7bef4e5e8375a6b4de316e314d1a63f392222173eb2bb4e6">
+                  <input type="hidden" name="reference" value="ZW-DVATPC">
+                  <input type="hidden" name="scope" value="open">
+                  <button class="kbtn kbtn--cash" type="submit" name="action" value="paid">
+                    Took payment
+                  </button>
+                </form>
+              
+              
+                                        </footer>
+
+          </article>
+              </div>
+
+    
+    <p class="kfoot">
+              This board refreshes itself every 45 seconds.
+          </p>
+
+  </main>
+
+
+</body>
+</html>
