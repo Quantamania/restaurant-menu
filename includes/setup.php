@@ -1,6 +1,19 @@
 <?php
 /* The first thing every page runs. */
 
+/* Errors are written to the log, never printed.
+ *
+ * A notice printed before the HTML sends the headers early, and after that
+ * session_start() cannot run — which breaks every form on the site while the
+ * pages still look fine. Visitors see one plain sentence; the detail goes to
+ * the host's function log. Locally, keep them on screen. */
+$isLocal = in_array(explode(':', strtolower((string) ($_SERVER['HTTP_HOST'] ?? '')))[0],
+                    ['localhost', '127.0.0.1', '::1'], true);
+
+ini_set('display_errors', $isLocal ? '1' : '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
 // The session now decides who may read an order.
 session_set_cookie_params([
     'httponly' => true,
