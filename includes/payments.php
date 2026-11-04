@@ -41,14 +41,14 @@ function start_payment(array $order, string $method, string $phone = ''): array
         try {
             $pdo->prepare(
                 'INSERT INTO payments (order_id, method, amount, status, provider_note)
-                 VALUES (?, "cash", ?, "pending", "To be paid on handover")'
+                 VALUES (?, \'cash\', ?, \'pending\', "To be paid on handover")'
             )->execute([$order['id'], $amount]);
 
             $paymentId = (int) $pdo->lastInsertId();
 
             // 'unpaid' is the honest state: the food is coming, the money has not arrived.
             $pdo->prepare(
-                'UPDATE orders SET payment_method = "cash", payment_status = "unpaid" WHERE id = ?'
+                "UPDATE orders SET payment_method = 'cash', payment_status = 'unpaid' WHERE id = ?"
             )->execute([$order['id']]);
 
             $pdo->commit();
@@ -77,14 +77,14 @@ function start_payment(array $order, string $method, string $phone = ''): array
 
     try {
         $pdo->prepare(
-            'INSERT INTO payments (order_id, method, amount, status, phone)
-             VALUES (?, "mpesa", ?, "pending", ?)'
+            "INSERT INTO payments (order_id, method, amount, status, phone)
+             VALUES (?, 'mpesa', ?, 'pending', ?)"
         )->execute([$order['id'], $amount, $number]);
 
         $paymentId = (int) $pdo->lastInsertId();
 
         $pdo->prepare(
-            'UPDATE orders SET payment_method = "mpesa", payment_status = "pending" WHERE id = ?'
+            "UPDATE orders SET payment_method = 'mpesa', payment_status = 'pending' WHERE id = ?"
         )->execute([$order['id']]);
 
         $pdo->commit();
@@ -142,11 +142,11 @@ function settle_payment(int $paymentId, ?string $providerRef = null, ?string $no
         }
 
         $pdo->prepare(
-            'UPDATE payments SET status = "paid", provider_ref = COALESCE(?, provider_ref),
-                    provider_note = COALESCE(?, provider_note) WHERE id = ?'
+            "UPDATE payments SET status = 'paid', provider_ref = COALESCE(?, provider_ref),
+                    provider_note = COALESCE(?, provider_note) WHERE id = ?"
         )->execute([$providerRef, $note, $paymentId]);
 
-        $pdo->prepare('UPDATE orders SET payment_status = "paid" WHERE id = ?')
+        $pdo->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?")
             ->execute([$payment['order_id']]);
 
         $pdo->commit();
@@ -190,12 +190,12 @@ function mark_payment_failed(int $paymentId, ?string $why = null): void
         $stmt->execute([$paymentId]);
         $orderId = $stmt->fetchColumn();
 
-        $pdo->prepare('UPDATE payments SET status = "failed", provider_note = ? WHERE id = ?')
+        $pdo->prepare("UPDATE payments SET status = 'failed', provider_note = ? WHERE id = ?")
             ->execute([$why !== null ? mb_substr($why, 0, 255) : null, $paymentId]);
 
         if ($orderId) {
             // Back to 'failed', not 'unpaid'.
-            $pdo->prepare('UPDATE orders SET payment_status = "failed" WHERE id = ?')
+            $pdo->prepare("UPDATE orders SET payment_status = 'failed' WHERE id = ?")
                 ->execute([$orderId]);
         }
     } catch (Throwable $ex) {

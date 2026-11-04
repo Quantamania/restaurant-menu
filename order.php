@@ -195,8 +195,8 @@ if (($_POST['action'] ?? null) === 'order' && !isset($errors['form'])) {
 
             // The first entry in the order's history.
             $pdo->prepare(
-                'INSERT INTO order_events (order_id, from_status, to_status, actor)
-                 VALUES (?, NULL, "new", "customer")'
+                "INSERT INTO order_events (order_id, from_status, to_status, actor)
+                 VALUES (?, NULL, 'new', 'customer')"
             )->execute([$orderId]);
 
             $pdo->commit();

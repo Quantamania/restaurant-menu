@@ -117,7 +117,7 @@ function mark_order_paid(string $reference, string $actor = 'kitchen'): array
             // No attempt was ever recorded.
             $pdo->prepare(
                 'INSERT INTO payments (order_id, method, amount, status, provider_note)
-                 VALUES (?, "cash", ?, "pending", "Taken at the counter")'
+                 VALUES (?, \'cash\', ?, \'pending\', "Taken at the counter")'
             )->execute([$order['id'], $order['total']]);
 
             $paymentId = (int) $pdo->lastInsertId();
@@ -173,9 +173,9 @@ function kitchen_orders(string $scope = 'open'): array
 
     $sql .= match ($scope) {
         'today'     => 'WHERE o.order_date = CURDATE() ',
-        'cancelled' => 'WHERE o.status = "cancelled" ',
+        'cancelled' => "WHERE o.status = 'cancelled' ",
         'all'       => '',
-        default     => 'WHERE o.status IN ("new","preparing","ready") ',
+        default     => "WHERE o.status IN ('new','preparing','ready') ",
     };
 
     // Newest first: a kitchen screen is watched.
@@ -242,7 +242,7 @@ function delete_order(string $reference, string $actor = 'kitchen'): array
 
         // Checked on the orders row AND in the payments table.
         $paid = $pdo->prepare(
-            'SELECT COUNT(*) FROM payments WHERE order_id = ? AND status = "paid"'
+            "SELECT COUNT(*) FROM payments WHERE order_id = ? AND status = 'paid'"
         );
         $paid->execute([$order['id']]);
 
@@ -329,13 +329,13 @@ function upcoming_reservation_count(): int
 function kitchen_recent_exits(int $minutes = 180): array
 {
     $stmt = getPDO()->prepare(
-        'SELECT e.reference, e.to_status, e.from_status, e.actor, e.created_at,
+        "SELECT e.reference, e.to_status, e.from_status, e.actor, e.created_at,
                 (e.order_id IS NULL) AS order_gone
            FROM order_events e
-          WHERE e.to_status IN ("cancelled", "deleted")
+          WHERE e.to_status IN ('cancelled', 'deleted')
             AND e.created_at >= (NOW() - INTERVAL ? MINUTE)
           ORDER BY e.id DESC
-          LIMIT 12'
+          LIMIT 12"
     );
     $stmt->execute([$minutes]);
 
