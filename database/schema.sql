@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
-/* Sessions, when there is no shared disk to keep them on (see src/session.php). */
+/* Sessions, when there is no shared disk to keep them on (see includes/session.php). */
 CREATE TABLE IF NOT EXISTS sessions (
   id VARCHAR(128) NOT NULL PRIMARY KEY,
   payload MEDIUMTEXT NOT NULL,

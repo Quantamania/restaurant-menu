@@ -1,7 +1,7 @@
 <?php
 /* M-PESA CALLBACK */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 // Answer first.
 http_response_code(200);

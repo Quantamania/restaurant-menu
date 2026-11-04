@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@700;800&family=Roboto:wght@300;400;500;700;800;900&display=swap">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 
   <script>
     /* Read the hand-off left by the page you came from and mark this document before anyth */

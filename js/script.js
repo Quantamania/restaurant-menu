@@ -642,4 +642,42 @@
       }
     });
   })();
+  /* 9. THE STAFF SHORTCUT */
+
+  /* Three clicks on the hero plate open the kitchen board. There is no
+   * button for it anywhere, because customers have no reason to see one —
+   * staff on the counter tablet tap the plate instead of typing a URL.
+   *
+   * Obscurity is not a lock. What actually protects the board is the staff
+   * password in src/config.php; this only saves the typing. Turn the
+   * password back on before the site is public. */
+  (function () {
+    /* The whole plate, not the photo inside it. .plate-art__ring is absolutely
+     * positioned and 6% wider than the disc, so it paints on top and swallows
+     * every click. Listening on the shared parent catches the ring, the disc
+     * and the photo alike, whatever ends up stacked highest. */
+    var plate = document.querySelector(".plate-art");
+    if (!plate) {
+      return;   /* not the home page */
+    }
+
+    var taps = 0;
+    var timer = null;
+
+    plate.addEventListener("click", function () {
+      taps += 1;
+
+      /* The run has to be deliberate: a stray click a second later starts
+       * over rather than counting towards the three. */
+      window.clearTimeout(timer);
+      timer = window.setTimeout(function () { taps = 0; }, 600);
+
+      if (taps >= 3) {
+        taps = 0;
+        window.clearTimeout(timer);
+        window.location.href = "kitchen.php";
+      }
+    });
+  })();
+
 })();

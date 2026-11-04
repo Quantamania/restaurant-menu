@@ -1,7 +1,7 @@
 <?php
 /* ACCOUNT PAGE */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle = 'Your account';
 $crumbs    = [['Home', 'index.php'], ['Your account', null]];
@@ -78,7 +78,7 @@ if (($_POST['action'] ?? null) === 'register') {
 
 $user = current_user();
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <section class="section account-page">
@@ -393,4 +393,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

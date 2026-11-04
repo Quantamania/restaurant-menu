@@ -1,8 +1,8 @@
-src/config.php
+includes/config.php
 .vscode/
 .idea/
 .DS_Store
 storage/
 
 # Scratch previews written while checking layout — never part of the site.
-public/_*
+_*

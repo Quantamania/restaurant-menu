@@ -2,7 +2,7 @@
 /* The toolbox: the database connection and the small helper functions that */
 
 
-/* src/config.php, read once. */
+/* includes/config.php, read once. */
 function config(): array
 {
     static $conf = null;
@@ -34,18 +34,31 @@ function getPDO(): PDO
 
         if ($host === '' || $name === '') {
             throw new RuntimeException(
-                'No database configured. Copy src/config.example.php to '
-              . 'src/config.php, or set DB_HOST / DB_NAME / DB_USER / DB_PASS.'
+                'No database configured. Copy includes/config.example.php to '
+              . 'includes/config.php, or set DB_HOST / DB_NAME / DB_USER / DB_PASS.'
             );
         }
 
         $dsn = "mysql:host={$host};dbname={$name};charset=utf8mb4";
 
-        $pdo = new PDO($dsn, $user, $pass, [
+        $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        ];
+
+        /* Hosted databases need TLS. DB_SSL_CA (the provider's public CA
+         * file) encrypts and verifies; DB_SSL=require only encrypts. */
+        $sslCa = getenv('DB_SSL_CA') ?: ($c['ssl_ca'] ?? '');
+
+        if ($sslCa !== '') {
+            $path = str_starts_with($sslCa, '/') ? $sslCa : __DIR__ . '/../' . $sslCa;
+            $options[PDO::MYSQL_ATTR_SSL_CA] = $path;
+        } elseif (strtolower((string) (getenv('DB_SSL') ?: ($c['ssl'] ?? ''))) === 'require') {
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        }
+
+        $pdo = new PDO($dsn, $user, $pass, $options);
 
         // Make the database agree with PHP about what time it is.
         $pdo->exec("SET time_zone = '" . (new DateTimeImmutable())->format('P') . "'");

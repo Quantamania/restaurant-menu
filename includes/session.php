@@ -1,18 +1,6 @@
 <?php
-/* Where sessions are kept.
- *
- * PHP stores sessions as files in a temp directory. That is fine on one
- * server and useless on a serverless host: each request may run in a fresh
- * container, so the next request cannot read what the last one wrote.
- *
- * On this site that would not merely break "stay signed in" — every form
- * carries a CSRF token kept in the session, so EVERY submission would come
- * back "your session expired". Ordering, booking, paying and the kitchen's
- * buttons would all fail.
- *
- * So when there is no shared disk, sessions go in the database, which every
- * container does share. Same API, same $_SESSION, different shelf.
- */
+/* Where sessions are kept: files on one server, the database when there is
+ * no shared disk (serverless). Same $_SESSION either way. */
 
 
 /** Should sessions live in the database rather than on disk? */
@@ -29,13 +17,8 @@ function sessions_in_database(): bool
 }
 
 
-/**
- * Registers the database session handler.
- *
- * Must run before session_start(). Returns false if the database cannot be
- * reached, so the caller can fall back to files rather than failing to
- * start a session at all.
- */
+/* Registers the database handler. Must run before session_start(). Returns
+ * false if the database is unreachable, so the caller can fall back. */
 function use_database_sessions(): bool
 {
     try {

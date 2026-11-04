@@ -1,7 +1,7 @@
 <?php
 /* PAYMENT PAGE */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle = 'Pay for your order';
 $crumbs    = [['Home', 'index.php'], ['Order food', 'order.php'], ['Payment', null]];
@@ -106,7 +106,7 @@ $waiting = $order
 
 $pay = $site['payment'] ?? [];
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <section class="section pay-page">
@@ -367,4 +367,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

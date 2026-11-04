@@ -1,0 +1,10 @@
+# These files are included by the pages; they are never opened directly.
+# Apache 2.4 (XAMPP, WAMP, most hosts):
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+# Apache 2.2 and older:
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

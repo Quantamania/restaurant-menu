@@ -1,7 +1,7 @@
 <?php
 /* LANDING PAGE */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle = 'Home';
 $featured  = [];
@@ -69,7 +69,7 @@ $mapLink = $map
               $mapLat, $mapLng, $mapZoom, $mapLat, $mapLng)
     : null;
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <!-- ============ HERO ============ -->
@@ -419,4 +419,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

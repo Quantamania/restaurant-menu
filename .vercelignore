@@ -1,5 +1,6 @@
 assets/
 storage/
 tools/
+database/
 *.md
-/tmp
+.vercel

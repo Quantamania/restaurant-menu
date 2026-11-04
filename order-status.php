@@ -1,7 +1,7 @@
 <?php
 /* ORDER TRACKING — "my orders" */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle = 'Your order';
 $crumbs    = [['Home', 'index.php'], ['Track your order', null]];
@@ -107,6 +107,37 @@ try {
         }
     }
 
+    /* The customer deleting their own cancelled order.
+     *
+     * Same delete_order() the kitchen uses, so the rules are identical in
+     * both places: only a cancelled order goes, a paid one never does —
+     * the row is the only record of the money — and it is logged first.
+     * Guarded on $order, not $found, so it inherits the ownership check
+     * may_view_order() already made. */
+    if ($order && ($_POST['action'] ?? null) === 'delete-order') {
+        if (!csrf_valid($_POST['csrf'] ?? null)) {
+            $error = 'Your session expired. Please try again.';
+        } else {
+            $gone   = $order['reference'];
+            $result = delete_order($gone, 'customer');
+
+            if ($result['ok']) {
+                // Drop it from the guest list too, or it lingers as a dead link.
+                if (!empty($_SESSION['my_orders'])) {
+                    $_SESSION['my_orders'] = array_values(
+                        array_diff($_SESSION['my_orders'], [$gone])
+                    );
+                }
+
+                /* ?ref= would only 404 now, so go back to the list. */
+                header('Location: order-status.php?deleted=' . urlencode($gone));
+                exit;
+            }
+
+            $error = $result['error'];
+        }
+    }
+
     // A reload after a code was sent: stay on the code box.
     if ($found && $order === null && $sentVia === null
         && ($_SESSION['code_sent_for'] ?? null) === $reference) {
@@ -175,7 +206,7 @@ if ($liveOrder) {
     $metaRefresh = 30;
 }
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <section class="section status-page">
@@ -218,6 +249,13 @@ require __DIR__ . '/../src/header.php';
         }
       ?>
 
+      <?php if ($error): ?>
+        <p class="msg msg--bad">
+          <span class="msg__icon" aria-hidden="true">!</span>
+          <span><?= e($error) ?></span>
+        </p>
+      <?php endif; ?>
+
       <?php if (($_GET['cancel'] ?? '') === $order['reference']
                 && in_array($order['status'], ['new', 'preparing', 'ready'], true)): ?>
 
@@ -244,6 +282,31 @@ require __DIR__ . '/../src/header.php';
             </form>
             <a class="button button--ghost"
                href="order-status.php?ref=<?= urlencode($order['reference']) ?>">Keep it</a>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php /* Deleting a cancelled order. Same spot as the cancel box, so the
+             * question is where the eye already is after clicking the link. */ ?>
+      <?php if (($_GET['remove'] ?? '') === $order['reference'] && $cancelled
+             && $order['payment_status'] !== 'paid'): ?>
+
+        <div class="cancelbox">
+          <p class="cancelbox__ask">
+            Delete <strong><?= e($order['reference']) ?></strong> for good?
+            This removes the order and everything on it. We cannot bring it
+            back, and it leaves the kitchen's board too.
+          </p>
+          <div class="cancelbox__acts">
+            <form method="post" action="order-status.php">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="reference" value="<?= e($order['reference']) ?>">
+              <button class="button button--danger" type="submit" name="action" value="delete-order">
+                Yes, delete it
+              </button>
+            </form>
+            <a class="button button--ghost"
+               href="order-status.php?ref=<?= urlencode($order['reference']) ?>">Keep the record</a>
           </div>
         </div>
       <?php endif; ?>
@@ -424,6 +487,24 @@ require __DIR__ . '/../src/header.php';
         </p>
       <?php endif; ?>
 
+      <?php /* Only once it is cancelled — there is nothing to delete before
+             * that, and the button would sit next to Cancel as a trap. */ ?>
+      <?php if ($cancelled && ($_GET['remove'] ?? '') !== $order['reference']): ?>
+        <?php if ($order['payment_status'] === 'paid'): ?>
+          <p class="cancelline">
+            This one was paid, so we keep the record for your refund.
+            Call <?= e($site['phone']) ?> if you need anything.
+          </p>
+        <?php else: ?>
+          <p class="cancelline">
+            Finished with this one?
+            <a href="order-status.php?ref=<?= urlencode($order['reference']) ?>&amp;remove=<?= urlencode($order['reference']) ?>">
+              Delete this order
+            </a>
+          </p>
+        <?php endif; ?>
+      <?php endif; ?>
+
       <p class="status-again">
         <a class="button button--small" href="order.php">Order something else</a>
         <a class="button button--small button--ghost" href="menu.php">Back to the menu</a>
@@ -453,6 +534,14 @@ require __DIR__ . '/../src/header.php';
           <span class="msg__icon" aria-hidden="true">&check;</span>
           <span>We attached <?= $claimed ?> earlier
                 <?= $claimed === 1 ? 'order' : 'orders' ?> to your account.</span>
+        </p>
+      <?php endif; ?>
+
+      <?php if (isset($_GET['deleted'])): ?>
+        <p class="msg msg--ok">
+          <span class="msg__icon" aria-hidden="true">&check;</span>
+          <span>Order <strong><?= e((string) $_GET['deleted']) ?></strong> has been
+                deleted. Nothing of it is left.</span>
         </p>
       <?php endif; ?>
 
@@ -609,6 +698,14 @@ require __DIR__ . '/../src/header.php';
         </p>
       </div>
 
+      <?php if (isset($_GET['deleted'])): ?>
+        <p class="msg msg--ok">
+          <span class="msg__icon" aria-hidden="true">&check;</span>
+          <span>Order <strong><?= e((string) $_GET['deleted']) ?></strong> has been
+                deleted. Nothing of it is left.</span>
+        </p>
+      <?php endif; ?>
+
       <?php if ($error): ?>
         <p class="msg msg--bad">
           <span class="msg__icon" aria-hidden="true">!</span>
@@ -723,4 +820,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

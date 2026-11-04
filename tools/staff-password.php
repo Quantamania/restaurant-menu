@@ -60,7 +60,7 @@ if (!hash_equals($first, $again)) {
 // PASSWORD_DEFAULT rather than a named algorithm.
 $hash = password_hash($first, PASSWORD_DEFAULT);
 
-echo "\n  Done. Paste this into src/config.php, inside the 'staff' block:\n\n";
+echo "\n  Done. Paste this into includes/config.php, inside the 'staff' block:\n\n";
 echo "    'password_hash' => '" . $hash . "',\n\n";
 echo "  Or set it in the environment instead:\n\n";
 echo "    STAFF_PASSWORD_HASH='" . $hash . "'\n\n";

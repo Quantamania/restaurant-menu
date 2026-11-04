@@ -1,7 +1,7 @@
 <?php
 /* ORDER PAGE */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 // Ordering needs an account.
 if (!logged_in()) {
@@ -229,7 +229,7 @@ unset($_SESSION['flash']);
 
 $bad = static fn(string $field): string => !empty($errors[$field]) ? ' field--bad' : '';
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <section class="order-page">
@@ -650,4 +650,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

@@ -1,7 +1,7 @@
 <?php
 /* RESERVATION PAGE */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle = 'Reserve a table';
 $crumbs    = [['Home', 'index.php'], ['Reserve a table', null]];
@@ -41,7 +41,7 @@ try {
 
 if ($action === 'book' && !isset($errors['form'])) {
 
-    // Was this really our own form? (see csrf_token() in src/functions.php)
+    // Was this really our own form? (see csrf_token() in includes/functions.php)
     if (!csrf_valid($_POST['csrf'] ?? null)) {
         $errors['form'] = 'Your session expired. Please try again.';
     }
@@ -159,7 +159,7 @@ foreach ($tables as $t) {
     }
 }
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <section class="reserve">
@@ -410,4 +410,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

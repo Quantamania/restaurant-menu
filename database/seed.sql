@@ -38,7 +38,7 @@ INSERT INTO restaurant_tables (label, seats, area) VALUES
   ('T3',  2, 'Terrace'),
   ('T4',  2, 'Terrace');
 
--- Photos. Each file lives in public/images/; the full-size originals are
+-- Photos. Each file lives in images/; the full-size originals are
 -- kept in assets/originals/ and are not served. A dish with no photo falls
 -- back to a tile with its initial, so this list only needs the ones you have.
 UPDATE menu_items SET image = 'mandazi-and-masala-chai.jpg', image_alt = 'Freshly fried mandazi with spiced milk tea'

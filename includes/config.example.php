@@ -1,5 +1,5 @@
 <?php
-/* TEMPLATE for src/config.php — the one file to edit. */
+/* TEMPLATE for includes/config.php — the one file to edit. */
 
 return [
 
@@ -9,6 +9,13 @@ return [
         'dbname' => 'restaurant_menu',
         'user'   => 'menu_user',
         'pass'   => '',
+
+        // Hosted databases usually require TLS. Point this at the provider's
+        // CA certificate (Aiven gives you one to download; it is public, so
+        // it can live in the repo). Relative paths are from the project root.
+        'ssl_ca' => '',          // DB_SSL_CA, e.g. 'database/aiven-ca.pem'
+        // Or encrypt without verifying the certificate:
+        'ssl'    => '',          // DB_SSL=require
     ],
 
     /* --------------------------------------------- the kitchen screen door */

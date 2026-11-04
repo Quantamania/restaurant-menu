@@ -1,7 +1,7 @@
 <?php
 /* MENU PAGE */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle  = 'Menu';
 $crumbs     = [['Home', 'index.php'], ['Menu', null]];
@@ -29,7 +29,7 @@ try {
     $error = 'The menu is unavailable right now. Please try again later.';
 }
 
-require __DIR__ . '/../src/header.php';
+require __DIR__ . '/includes/header.php';
 ?>
 
 <!-- ============ MENU ============ -->
@@ -127,4 +127,4 @@ require __DIR__ . '/../src/header.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../src/footer.php'; ?>
+<?php require __DIR__ . '/includes/footer.php'; ?>

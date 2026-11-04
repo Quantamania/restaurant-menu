@@ -3278,14 +3278,14 @@ html.nav-fade .pagefade {
   border-radius: 0;
   text-decoration: none;
   box-shadow: none;
-  transition: color .16s ease, transform .16s ease;
+  transition: color .16s ease;
 }
-/* Hover turns the whole lockup teal. */
-.brand:hover { background: none; color: var(--c-teal); transform: translateY(-1px); }
+/* Hover turns the whole lockup teal — colour only, never size or position. */
+.brand:hover { background: none; color: var(--c-teal); }
 
 /* The wordmark needs saying separately. .wordmark sets its own colour, so */
 .brand:hover .brand__word { color: var(--c-teal); }
-body.is-landing .brand:hover .brand__word,
+body.is-landing .brand:hover .brand__word { color: var(--c-teal); }
 
 /* the box and its letter, held together so the wordmark can sit beside them */
 .brand__box-wrap {

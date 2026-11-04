@@ -9,7 +9,7 @@ session_set_cookie_params([
     'path'     => '/',
 ]);
 
-// Sessions may need to live in the database — see src/session.php. The
+// Sessions may need to live in the database — see includes/session.php. The
 // handler has to be registered before the session starts.
 require __DIR__ . '/functions.php';
 require __DIR__ . '/session.php';
@@ -20,7 +20,7 @@ if (sessions_in_database()) {
 
 session_start();
 
-// Five files, in the order a request needs them. Each is one topic:
+// Four topic files, in the order a request needs them:
 require __DIR__ . '/messaging.php';   // settings, email, SMS, what gets sent
 require __DIR__ . '/payments.php';    // taking money
 require __DIR__ . '/auth.php';        // customer accounts and the staff door

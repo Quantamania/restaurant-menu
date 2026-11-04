@@ -1,7 +1,7 @@
 <?php
 /* KITCHEN SCREEN */
 
-require __DIR__ . '/../src/setup.php';
+require __DIR__ . '/includes/setup.php';
 
 $pageTitle = 'Kitchen';
 $error     = null;
@@ -167,7 +167,7 @@ $now = new DateTimeImmutable();
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@700;800&family=Roboto:wght@300;400;500;700;800;900&display=swap">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="kitchen<?= $signedIn && $view === 'bookings' ? ' kitchen--bookings' : '' ?>">
 
@@ -191,10 +191,10 @@ $now = new DateTimeImmutable();
                the visitor's business, and naming the file would be telling
                an attacker exactly what to go looking for. -->
           <ol class="kgate__steps">
-            <li>Copy the template:<br><code>cp src/config.example.php src/config.php</code></li>
+            <li>Copy the template:<br><code>cp includes/config.example.php includes/config.php</code></li>
             <li>Make a password:<br><code>php tools/staff-password.php</code></li>
             <li>Paste the line it prints into the <code>staff</code> block of
-                <code>src/config.php</code>, then reload this page.</li>
+                <code>includes/config.php</code>, then reload this page.</li>
           </ol>
         <?php else: ?>
           <p class="kgate__lead">Ask whoever set up the site.</p>
