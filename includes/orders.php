@@ -328,16 +328,24 @@ function upcoming_reservation_count(): int
  * order_events.order_id is SET NULL rather than CASCADE. */
 function kitchen_recent_exits(int $minutes = 180): array
 {
+    /* The cutoff is worked out in PHP and bound as a datetime. MySQL will
+     * not accept a placeholder inside INTERVAL ? MINUTE in a real prepared
+     * statement, though MariaDB allows it — so that form works locally and
+     * fails on a hosted MySQL. */
+    $cutoff = (new DateTimeImmutable())
+        ->modify('-' . $minutes . ' minutes')
+        ->format('Y-m-d H:i:s');
+
     $stmt = getPDO()->prepare(
         "SELECT e.reference, e.to_status, e.from_status, e.actor, e.created_at,
                 (e.order_id IS NULL) AS order_gone
            FROM order_events e
           WHERE e.to_status IN ('cancelled', 'deleted')
-            AND e.created_at >= (NOW() - INTERVAL ? MINUTE)
+            AND e.created_at >= ?
           ORDER BY e.id DESC
           LIMIT 12"
     );
-    $stmt->execute([$minutes]);
+    $stmt->execute([$cutoff]);
 
     return $stmt->fetchAll();
 }

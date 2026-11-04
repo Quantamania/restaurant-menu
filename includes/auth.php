@@ -24,27 +24,42 @@ function login_client_ip(): string
 }
 
 
+/* The start of the lockout window, as a datetime the database can compare. */
+function login_window_start(): string
+{
+    return (new DateTimeImmutable())
+        ->modify('-' . ACCOUNT_LOCK_MINUTES . ' minutes')
+        ->format('Y-m-d H:i:s');
+}
+
+
 /* How many failures inside the window, counted two ways. */
 function login_failures(string $scope, ?string $identity = null): int
 {
     try {
         $pdo = getPDO();
 
+        /* The cutoff is computed here, not in SQL. MySQL rejects a
+         * placeholder inside INTERVAL ? MINUTE in a real prepared statement,
+         * though MariaDB allows it — so the SQL form works locally and
+         * silently breaks the lockout on a hosted MySQL. */
+        $since = login_window_start();
+
         $byIp = $pdo->prepare(
             'SELECT COUNT(*) FROM login_attempts
               WHERE scope = ? AND ip = ? AND succeeded = 0
-                AND created_at > (NOW() - INTERVAL ? MINUTE)'
+                AND created_at > ?'
         );
-        $byIp->execute([$scope, login_client_ip(), ACCOUNT_LOCK_MINUTES]);
+        $byIp->execute([$scope, login_client_ip(), $since]);
         $worst = (int) $byIp->fetchColumn();
 
         if ($identity !== null && $identity !== '') {
             $byWho = $pdo->prepare(
                 'SELECT COUNT(*) FROM login_attempts
                   WHERE scope = ? AND identity = ? AND succeeded = 0
-                    AND created_at > (NOW() - INTERVAL ? MINUTE)'
+                    AND created_at > ?'
             );
-            $byWho->execute([$scope, $identity, ACCOUNT_LOCK_MINUTES]);
+            $byWho->execute([$scope, $identity, $since]);
             $worst = max($worst, (int) $byWho->fetchColumn());
         }
 
@@ -80,17 +95,26 @@ function login_lock_minutes_left(string $scope, ?string $identity = null): int
 {
     try {
         $stmt = getPDO()->prepare(
-            'SELECT TIMESTAMPDIFF(MINUTE, NOW(), created_at + INTERVAL ? MINUTE)
-               FROM login_attempts
+            'SELECT created_at FROM login_attempts
               WHERE scope = ? AND succeeded = 0
                 AND (ip = ? OR (identity IS NOT NULL AND identity = ?))
-                AND created_at > (NOW() - INTERVAL ? MINUTE)
+                AND created_at > ?
               ORDER BY created_at ASC LIMIT 1'
         );
-        $stmt->execute([ACCOUNT_LOCK_MINUTES, $scope, login_client_ip(),
-                        $identity, ACCOUNT_LOCK_MINUTES]);
+        $stmt->execute([$scope, login_client_ip(), $identity, login_window_start()]);
 
-        return max(1, (int) $stmt->fetchColumn());
+        $oldest = $stmt->fetchColumn();
+        if (!$oldest) {
+            return ACCOUNT_LOCK_MINUTES;
+        }
+
+        // When that attempt ages out of the window.
+        $free = (new DateTimeImmutable((string) $oldest))
+            ->modify('+' . ACCOUNT_LOCK_MINUTES . ' minutes');
+
+        $left = (int) ceil(($free->getTimestamp() - time()) / 60);
+
+        return max(1, $left);
     } catch (Throwable $ex) {
         return ACCOUNT_LOCK_MINUTES;
     }
