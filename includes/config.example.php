@@ -6,6 +6,7 @@ return [
     /* -------------------------------------------------------- the database */
     'database' => [
         'host'   => 'localhost',
+        'port'   => '',          // hosted MySQL is rarely 3306 (Aiven ~24067)
         'dbname' => 'restaurant_menu',
         'user'   => 'menu_user',
         'pass'   => '',

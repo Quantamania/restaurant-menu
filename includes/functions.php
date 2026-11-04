@@ -31,6 +31,14 @@ function getPDO(): PDO
         $name = getenv('DB_NAME') ?: ($c['dbname'] ?? '');
         $user = getenv('DB_USER') ?: ($c['user']   ?? '');
         $pass = getenv('DB_PASS') ?: ($c['pass']   ?? '');
+        $port = getenv('DB_PORT') ?: ($c['port']   ?? '');
+
+        /* Hosted MySQL almost never listens on 3306 — Aiven hands out
+         * something like 24067. A host written as "name:24067" is split
+         * here too, since that is how providers print it. */
+        if ($port === '' && substr_count($host, ':') === 1) {
+            [$host, $port] = explode(':', $host, 2);
+        }
 
         if ($host === '' || $name === '') {
             throw new RuntimeException(
@@ -39,7 +47,9 @@ function getPDO(): PDO
             );
         }
 
-        $dsn = "mysql:host={$host};dbname={$name};charset=utf8mb4";
+        $dsn = "mysql:host={$host};"
+             . ($port !== '' ? "port=" . (int) $port . ";" : '')
+             . "dbname={$name};charset=utf8mb4";
 
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

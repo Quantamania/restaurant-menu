@@ -131,13 +131,23 @@ Required — the site will not start without these four:
 
 | Name | Value |
 |---|---|
-| `DB_HOST` | your database host |
-| `DB_NAME` | your database name |
-| `DB_USER` | your database user |
+| `DB_HOST` | your database host, e.g. `mysql-x.aivencloud.com` |
+| `DB_PORT` | the port, e.g. `24067` — **hosted MySQL is rarely 3306** |
+| `DB_NAME` | your database name, e.g. `defaultdb` |
+| `DB_USER` | your database user, e.g. `avnadmin` |
 | `DB_PASS` | your database password |
+| `DB_SSL` | `require` — most hosted providers refuse plain connections |
 
-If your host uses a non-standard port, put it in `DB_HOST` like
-`myhost.aivencloud.com;port=24067`.
+Set them for **Production, Preview and Development** (tick all three), then
+**redeploy** — environment variables are read at build time, so an existing
+deployment will not pick them up.
+
+`DB_PORT` can be left out if you write the host as `myhost.aivencloud.com:24067`;
+the code splits it. Setting both separately is clearer.
+
+For certificate verification rather than plain encryption, download the
+provider's CA file into `database/` and set `DB_SSL_CA=database/ca.pem`
+instead of `DB_SSL`. The CA is public and safe to commit.
 
 Worth adding:
 
