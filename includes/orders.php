@@ -64,9 +64,9 @@ function move_order(string $reference, string $to, string $actor = 'kitchen'): a
 
         // The history and the status move together or not at all.
         $pdo->prepare(
-            'INSERT INTO order_events (order_id, from_status, to_status, actor)
-             VALUES (?, ?, ?, ?)'
-        )->execute([$order['id'], $from, $to, $actor]);
+            'INSERT INTO order_events (order_id, reference, from_status, to_status, actor)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([$order['id'], $order['reference'], $from, $to, $actor]);
 
         $pdo->commit();
 
@@ -172,9 +172,10 @@ function kitchen_orders(string $scope = 'open'): array
               FROM orders o LEFT JOIN users u ON u.id = o.user_id ';
 
     $sql .= match ($scope) {
-        'today' => 'WHERE o.order_date = CURDATE() ',
-        'all'   => '',
-        default => 'WHERE o.status IN ("new","preparing","ready") ',
+        'today'     => 'WHERE o.order_date = CURDATE() ',
+        'cancelled' => 'WHERE o.status = "cancelled" ',
+        'all'       => '',
+        default     => 'WHERE o.status IN ("new","preparing","ready") ',
     };
 
     // Newest first: a kitchen screen is watched.
@@ -262,6 +263,14 @@ function delete_order(string $reference, string $actor = 'kitchen'): array
             $order['created_at'], $order['payment_status']
         ));
 
+        /* Recorded BEFORE the row goes. order_events.order_id is SET NULL on
+         * delete, so this event survives and the kitchen can still show that
+         * the order was deleted, and by whom. */
+        $pdo->prepare(
+            'INSERT INTO order_events (order_id, reference, from_status, to_status, actor)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([$order['id'], $order['reference'], $order['status'], 'deleted', $actor]);
+
         $pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$order['id']]);
 
         $pdo->commit();
@@ -308,4 +317,27 @@ function upcoming_reservation_count(): int
         error_log('upcoming_reservation_count: ' . $ex->getMessage());
         return 0;
     }
+}
+
+
+/* Cancellations and deletions the kitchen may not have noticed yet.
+ *
+ * A cancelled order leaves the live board, and a deleted one leaves the
+ * database, so without this the kitchen could be cooking something the
+ * customer already called off. Deleted orders survive here because
+ * order_events.order_id is SET NULL rather than CASCADE. */
+function kitchen_recent_exits(int $minutes = 180): array
+{
+    $stmt = getPDO()->prepare(
+        'SELECT e.reference, e.to_status, e.from_status, e.actor, e.created_at,
+                (e.order_id IS NULL) AS order_gone
+           FROM order_events e
+          WHERE e.to_status IN ("cancelled", "deleted")
+            AND e.created_at >= (NOW() - INTERVAL ? MINUTE)
+          ORDER BY e.id DESC
+          LIMIT 12'
+    );
+    $stmt->execute([$minutes]);
+
+    return $stmt->fetchAll();
 }

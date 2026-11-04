@@ -96,7 +96,7 @@ if (isset($_GET['done']) && $done === null) {
 // Two views on one screen: the board, and the bookings.
 $view = ($_GET['view'] ?? '') === 'bookings' ? 'bookings' : 'orders';
 
-$scope  = in_array($_GET['scope'] ?? '', ['open', 'today', 'all'], true)
+$scope  = in_array($_GET['scope'] ?? '', ['open', 'today', 'cancelled', 'all'], true)
         ? $_GET['scope'] : 'open';
 
 // The bookings view has its own scopes.
@@ -116,6 +116,9 @@ if ($signedIn) {
             $bookings = kitchen_reservations($bScope);
         } else {
             $orders = kitchen_orders($scope);
+
+            // Cancellations and deletions the kitchen may not have noticed.
+            $exits = kitchen_recent_exits(180);
         }
         $bookingsDue = upcoming_reservation_count();
     } catch (Throwable $ex) {
@@ -290,7 +293,7 @@ $now = new DateTimeImmutable();
                <?= $bScope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
           <?php endforeach; ?>
         <?php else: ?>
-          <?php foreach (['open' => 'Open', 'today' => 'Today', 'all' => 'Recent'] as $key => $label): ?>
+          <?php foreach (['open' => 'Open', 'today' => 'Today', 'cancelled' => 'Cancelled', 'all' => 'Recent'] as $key => $label): ?>
             <a class="kscope__link<?= $scope === $key ? ' is-on' : '' ?>"
                href="kitchen.php?scope=<?= $key ?>"
                <?= $scope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
@@ -321,6 +324,32 @@ $now = new DateTimeImmutable();
         <span class="msg__icon" aria-hidden="true">&check;</span>
         <span><?= e($done) ?></span>
       </p>
+    <?php endif; ?>
+
+    <?php /* Cancellations and deletions, called out above the board. A
+     * cancelled order silently leaves the Open list and a deleted one leaves
+     * the database, so without this the kitchen could keep cooking something
+     * the customer already called off. */ ?>
+    <?php if ($view !== 'bookings' && !empty($exits)): ?>
+      <section class="kexits" aria-label="Recently cancelled or deleted">
+        <h2 class="kexits__head">
+          <?= count($exits) ?>
+          <?= count($exits) === 1 ? 'order has' : 'orders have' ?>
+          left the board in the last 3 hours
+        </h2>
+        <ul class="kexits__list">
+          <?php foreach ($exits as $x): ?>
+            <li class="kexits__item kexits__item--<?= $x['to_status'] === 'deleted' ? 'gone' : 'off' ?>">
+              <span class="kexits__ref"><?= e($x['reference'] ?? '—') ?></span>
+              <span class="kexits__what"><?= $x['to_status'] === 'deleted'
+                  ? 'deleted for good'
+                  : 'cancelled' . ($x['from_status'] === 'new' ? '' : ' while ' . e($x['from_status'])) ?></span>
+              <span class="kexits__who">by <?= e($x['actor']) ?></span>
+              <time class="kexits__when" datetime="<?= e($x['created_at']) ?>"><?= e(date('H:i', strtotime($x['created_at']))) ?></time>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
     <?php endif; ?>
 
     <?php if ($view === 'bookings'): ?>

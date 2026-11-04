@@ -273,7 +273,10 @@ CREATE TABLE IF NOT EXISTS order_access_codes (
 -- It is also the honest record if a customer disputes a cancellation.
 CREATE TABLE IF NOT EXISTS order_events (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  order_id INT NOT NULL,
+  -- Goes NULL if the order is deleted; the reference below keeps the row
+  -- readable, so a deletion still leaves a trace the kitchen can see.
+  order_id INT NULL,
+  reference VARCHAR(12) NULL,
   -- NULL for the first event (the order being created).
   from_status VARCHAR(20) NULL,
   to_status VARCHAR(20) NOT NULL,
@@ -284,10 +287,12 @@ CREATE TABLE IF NOT EXISTS order_events (
   actor VARCHAR(60) NOT NULL DEFAULT 'kitchen',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+  -- SET NULL, not CASCADE: deleting an order must not erase its history.
   CONSTRAINT fk_events_order FOREIGN KEY (order_id)
-    REFERENCES orders(id) ON DELETE CASCADE,
+    REFERENCES orders(id) ON DELETE SET NULL,
 
-  INDEX idx_order (order_id, id)
+  INDEX idx_order (order_id, id),
+  INDEX idx_reference (reference)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

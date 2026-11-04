@@ -5782,3 +5782,50 @@ body.is-landing .site-footer__base {
 }
 /* The quantity keeps its own column so the names still line up. */
 .kticket__items li { align-items: center; }
+
+
+/* ---------- cancelled and deleted, called out on the board ---------- */
+
+/* A cancelled order leaves the Open board and a deleted one leaves the
+   database, so this strip is the only place the kitchen would see either. */
+.kexits {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--c-bad-bg);
+  border: 1px solid var(--c-bad-line, #e3b9b2);
+  border-radius: var(--radius);
+}
+.kexits__head {
+  margin: 0 0 var(--sp-3);
+  font-family: var(--f-body);
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: #7c2f22;
+}
+.kexits__list { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.kexits__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .25rem .6rem;
+  padding: .4rem .6rem;
+  background: #fff;
+  border: 1px solid #ecd8d3;
+  border-left: 4px solid #b4503c;      /* cancelled */
+  border-radius: 9px;
+  font-size: .95rem;
+}
+/* Deleted is final, so it reads differently from merely cancelled. */
+.kexits__item--gone { border-left-color: #6b6b6b; }
+
+.kexits__ref { font-weight: 800; letter-spacing: .02em; color: var(--c-ink); }
+.kexits__what { font-weight: 600; color: #7c2f22; }
+.kexits__item--gone .kexits__what { color: #4a4a4a; }
+.kexits__who  { color: var(--c-ink-soft); }
+.kexits__when { margin-left: auto; color: var(--c-ink-soft); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 30rem) {
+  .kexits__when { margin-left: 0; }
+}

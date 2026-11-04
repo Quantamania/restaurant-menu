@@ -40,6 +40,8 @@ restaurant-menu/
 ├── database/              schema.sql, seed.sql
 ├── tools/                 command-line helper
 │
+├── docs/                  README, this file, the deploy guide,
+│                          and the demo script
 ├── vercel.json            hosting configuration
 └── favicon.svg + icons
 ```

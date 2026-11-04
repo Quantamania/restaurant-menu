@@ -2,5 +2,6 @@ assets/
 storage/
 tools/
 database/
+docs/
 *.md
 .vercel

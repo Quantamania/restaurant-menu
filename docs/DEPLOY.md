@@ -2,36 +2,61 @@
 
 ## Can this project be hosted on Vercel? — the short answer
 
-**Yes, with one external dependency: a MySQL database. Vercel does not provide
-one.** That is the only real blocker, and no amount of configuration removes
-it.
+**Yes, with two caveats: you need a MySQL database from somewhere else, and
+the PHP runtime is community-built and now archived.** Neither stops the
+deployment; both are worth knowing before you rely on it.
 
-Here is exactly what has been verified, and what has not, so you are not
-guessing on the day:
+### What the first failed deploy taught us
+
+The first attempt failed in one second with:
+
+```
+Error: [unused_function] The pattern "*.php" defined in `functions` doesn't match any Serverless Functions.
+```
+
+The cause is a rule in Vercel's own documentation:
+
+> The `functions` property uses a glob pattern for each key. This pattern
+> **must match Vercel Function source files within the `api` directory.**
+
+So `"*.php"` at the project root can never work with `functions` — not a typo,
+a hard restriction. `vercel.json` now uses **`builds`** instead, which takes
+arbitrary paths and is how PHP on Vercel has always been configured. The nine
+pages stay exactly where they are.
+
+### Catch this class of error before deploying
+
+```bash
+npx vercel build
+```
+
+This runs the same build locally and fails in seconds on a bad config, instead
+of after a push. Run it before every deploy.
+
+### Verified, and not
 
 | | Status |
 |---|---|
 | `vercel.json` validates against Vercel's official JSON schema | **verified** |
-| The PHP runtime matches: `vercel-php@0.8.0` is PHP 8.4, same as local | **verified** |
-| `includes/` reaches the functions — the runtime uploads every file and you exclude with `.vercelignore` | **verified from the runtime's own docs** |
+| Every `builds` pattern matches real files (9 PHP, 12 images, css, js, icons) | **verified** |
+| `vercel-php@0.8.0` is PHP 8.4, the same as local | **verified** |
+| The runtime uploads every project file, so `includes/` reaches the pages | **per the runtime's own docs** |
 | Nothing writes to disk except the `log` mail driver, which fails softly | **verified** |
 | Every setting can come from environment variables | **verified** |
-| Sessions survive across containers | **verified locally** with two processes on different save paths |
-| The actual deployment builds and serves | **not verified** — needs a Vercel login |
+| Sessions survive across containers | **verified locally**, two processes, separate save paths |
+| The deployment builds and serves | **you must run it** — verifying needs your login |
 
-The last row is the honest gap. Verifying it means running `vercel build`,
-which requires signing in to your account, so it is yours to run, not mine.
-Everything checkable without your credentials has been checked.
+### The runtime is archived
 
-**Two things to watch on the first deploy**, both visible immediately:
+`vercel-community/php` was archived on **29 October 2026**. The package still
+installs and runs, but it is no longer maintained, and Vercel now suggests a
+container runtime for new PHP projects.
 
-- *PHP source shown as text instead of running* — the `functions` glob did not
-  match. The official `vercel-php` examples put PHP in an `api/` folder; this
-  project uses a root-level `"*.php"` glob instead, which is valid per the
-  schema but is not the documented example. If this happens, see
-  "If the root glob does not work" at the end.
-- *A blank page or 500* — almost always the database, not the code. Check the
-  credentials and whether your provider allows connections from Vercel's IPs.
+For a project being marked this term that is fine — say it out loud rather
+than let someone find it. If this were going to carry real customers, a host
+with first-class PHP support (any shared host, or a small VPS) would be the
+better choice, and the code would not need to change at all: it is plain PHP
+talking to MySQL.
 
 ---
 
@@ -227,54 +252,36 @@ Most likely causes, in order:
 index.php  menu.php  order.php  pay.php  order-status.php
 reserve.php  account.php  kitchen.php  payment-callback.php
                         ← each becomes its own serverless function
-includes/               ← uploaded, but 404 over the web
+includes/               ← uploaded for the requires, but 404 over the web
 css/  js/  images/      ← served as static files
-database/  tools/  *.md ← excluded by .vercelignore, never uploaded
+database/ tools/ docs/  ← excluded by .vercelignore, never uploaded
 ```
 
-`vercel.json` says:
+`vercel.json` uses `builds` rather than `functions`, because `functions`
+requires everything to sit in an `api/` folder:
 
 ```json
-"functions": { "*.php": { "runtime": "vercel-php@0.8.0" } },
+"builds": [
+  { "src": "*.php",    "use": "vercel-php@0.8.0" },
+  { "src": "css/**",   "use": "@vercel/static" },
+  { "src": "js/**",    "use": "@vercel/static" },
+  { "src": "images/**","use": "@vercel/static" },
+  { "src": "*.ico",    "use": "@vercel/static" },
+  { "src": "*.svg",    "use": "@vercel/static" },
+  { "src": "*.png",    "use": "@vercel/static" }
+],
 "routes": [
   { "src": "/includes/(.*)", "status": 404 },
+  { "handle": "filesystem" },
   { "src": "/",              "dest": "/index.php" },
   { "src": "/([a-z0-9-]+)$", "dest": "/$1.php" }
 ]
 ```
 
-Three rules, in order: hide `includes/`, send `/` to the home page, and let
-`/menu` work as well as `/menu.php`. Anything else — `css/style.css`,
-`images/chicken-pilau.jpg` — matches no rule and is served as a static file.
+The routes run in order: refuse anything under `/includes/`, then let real
+files (css, js, images, icons) resolve, then send `/` to the home page, and
+finally allow `/menu` as well as `/menu.php`.
 
 `includes/config.php` is gitignored, so it is never uploaded. On Vercel the
-database settings come from environment variables instead, which is why
-`getPDO()` reads `getenv('DB_HOST')` before the config file.
-
----
-
-## If the root glob does not work
-
-If the first deploy serves PHP as plain text, the `"*.php"` glob did not match
-and the fix is the documented layout. You do **not** need to restructure the
-project — add a thin entry point:
-
-1. Create `api/index.php` containing one line:
-
-   ```php
-   <?php require __DIR__ . '/../' . (basename($_SERVER['SCRIPT_NAME'] ?? 'index.php'));
-   ```
-
-2. Change `vercel.json` to the documented shape:
-
-   ```json
-   "functions": { "api/*.php": { "runtime": "vercel-php@0.8.0" } },
-   "routes": [
-     { "src": "/includes/(.*)", "status": 404 },
-     { "src": "/(.*\\.(css|js|jpg|png|svg|ico))$", "dest": "/$1" },
-     { "src": "/(.*)", "dest": "/api/index.php" }
-   ]
-   ```
-
-The nine pages stay exactly where they are, so nothing a lecturer reads
-changes — only the hosting plumbing.
+database settings come from environment variables instead — which is why
+`getPDO()` reads `getenv('DB_HOST')` before it reads the config file.
