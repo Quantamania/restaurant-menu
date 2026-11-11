@@ -132,8 +132,6 @@ if ($signedIn) {
         } else {
             $orders = kitchen_orders($scope);
 
-            // Cancellations and deletions the kitchen may not have noticed.
-            $exits = kitchen_recent_exits(180);
         }
         $bookingsDue = upcoming_reservation_count();
     } catch (Throwable $ex) {
@@ -272,15 +270,15 @@ $now = new DateTimeImmutable();
     <!-- Three numbers, big enough to read from across the room. -->
     <?php if ($view === 'orders'): ?>
     <ul class="ktally">
-      <li class="ktally__item ktally__item--new">
+      <li class="ktally__item ktally__item--new<?= $counts['new'] === 0 ? ' ktally__item--zero' : '' ?>">
         <span class="ktally__n"><?= $counts['new'] ?></span>
         <span class="ktally__k">Waiting</span>
       </li>
-      <li class="ktally__item ktally__item--cooking">
+      <li class="ktally__item ktally__item--cooking<?= $counts['preparing'] === 0 ? ' ktally__item--zero' : '' ?>">
         <span class="ktally__n"><?= $counts['preparing'] ?></span>
         <span class="ktally__k">Cooking</span>
       </li>
-      <li class="ktally__item ktally__item--ready">
+      <li class="ktally__item ktally__item--ready<?= $counts['ready'] === 0 ? ' ktally__item--zero' : '' ?>">
         <span class="ktally__n"><?= $counts['ready'] ?></span>
         <span class="ktally__k">Ready</span>
       </li>
@@ -344,32 +342,6 @@ $now = new DateTimeImmutable();
         <span class="msg__icon" aria-hidden="true">&check;</span>
         <span><?= e($done) ?></span>
       </p>
-    <?php endif; ?>
-
-    <?php /* Cancellations and deletions, called out above the board. A
-     * cancelled order silently leaves the Open list and a deleted one leaves
-     * the database, so without this the kitchen could keep cooking something
-     * the customer already called off. */ ?>
-    <?php if ($view !== 'bookings' && !empty($exits)): ?>
-      <section class="kexits" aria-label="Recently cancelled or deleted">
-        <h2 class="kexits__head">
-          <?= count($exits) ?>
-          <?= count($exits) === 1 ? 'order has' : 'orders have' ?>
-          left the board in the last 3 hours
-        </h2>
-        <ul class="kexits__list">
-          <?php foreach ($exits as $x): ?>
-            <li class="kexits__item kexits__item--<?= $x['to_status'] === 'deleted' ? 'gone' : 'off' ?>">
-              <span class="kexits__ref"><?= e($x['reference'] ?? '—') ?></span>
-              <span class="kexits__what"><?= $x['to_status'] === 'deleted'
-                  ? 'deleted for good'
-                  : 'cancelled' . ($x['from_status'] === 'new' ? '' : ' while ' . e($x['from_status'])) ?></span>
-              <span class="kexits__who">by <?= e($x['actor']) ?></span>
-              <time class="kexits__when" datetime="<?= e($x['created_at']) ?>"><?= e(date('H:i', strtotime($x['created_at']))) ?></time>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      </section>
     <?php endif; ?>
 
     <?php if ($view === 'bookings'): ?>
@@ -747,6 +719,12 @@ $now = new DateTimeImmutable();
     </p>
 
   </main>
+
+  <?php /* The name across the foot, the same wordmark the home page footer
+         * uses. Decoration only — it has been announced already. */ ?>
+  <div class="kmark" aria-hidden="true">
+    <?= wordmark($site['name']) ?>
+  </div>
 
 <?php endif; ?>
 

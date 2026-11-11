@@ -5791,53 +5791,6 @@ body.is-landing .site-footer__base {
 .kticket__items li { align-items: center; }
 
 
-/* ---------- cancelled and deleted, called out on the board ---------- */
-
-/* A cancelled order leaves the Open board and a deleted one leaves the
-   database, so this strip is the only place the kitchen would see either. */
-.kexits {
-  margin: 0 0 var(--sp-5);
-  padding: var(--sp-4) var(--sp-5);
-  background: var(--c-bad-bg);
-  border: 1px solid var(--c-bad-line, #e3b9b2);
-  border-radius: var(--radius);
-}
-.kexits__head {
-  margin: 0 0 var(--sp-3);
-  font-family: var(--f-body);
-  font-size: .82rem;
-  font-weight: 700;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  color: #7c2f22;
-}
-.kexits__list { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
-.kexits__item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: .25rem .6rem;
-  padding: .4rem .6rem;
-  background: #fff;
-  border: 1px solid #ecd8d3;
-  border-left: 4px solid #b4503c;      /* cancelled */
-  border-radius: 9px;
-  font-size: .95rem;
-}
-/* Deleted is final, so it reads differently from merely cancelled. */
-.kexits__item--gone { border-left-color: #6b6b6b; }
-
-.kexits__ref { font-weight: 800; letter-spacing: .02em; color: var(--c-ink); }
-.kexits__what { font-weight: 600; color: #7c2f22; }
-.kexits__item--gone .kexits__what { color: #4a4a4a; }
-.kexits__who  { color: var(--c-ink-soft); }
-.kexits__when { margin-left: auto; color: var(--c-ink-soft); font-variant-numeric: tabular-nums; }
-
-@media (max-width: 30rem) {
-  .kexits__when { margin-left: 0; }
-}
-
-
 /* ---------- the "are you sure" confirms ---------- */
 
 /* On a booking card in the kitchen. */
@@ -5932,32 +5885,455 @@ body.is-landing .site-footer__base {
 .bpanel__more { margin: var(--sp-4) 0 0; }
 
 
-/* ---------- buttons on the dark kitchen pages ---------- */
+/* ===========================================================================
+   THE KITCHEN PAGES, ON TEAL
 
-/* .button paints itself --c-dark and .button--ghost takes --c-ink, both of
-   which are the colour of the kitchen bar itself — so a button there was
-   invisible. These give them a surface and edges that show against it. */
+   The ground is the restaurant's teal. The cards keep the dark they already
+   had — they carry it themselves now rather than borrowing it from the page,
+   and dark-on-teal reads as a clear separate surface (3.51:1).
+
+   Text on teal: white clears 4.5:1 at 5.18, and #e8f6f5 at 4.67 for the
+   quieter lines. Anything warmer fails, so nothing warm is used here.
+
+   Last in the file, so these win on order over the dark-page rules above.
+   =========================================================================== */
+
+.kitchen-html { background: var(--c-teal); }
+
+.kitchen {
+  background: var(--c-teal);
+  color: #e8f6f5;
+}
+
+/* ---- the bar: a deeper teal, so it reads as a bar ---- */
+
+.kitchen .kbar {
+  background: var(--c-teal-deep);
+  border-bottom-color: rgba(255,255,255,.18);
+}
+.kitchen .kbar__title { color: #fff; }
+.kitchen .kbar__clock { color: #d9efed; }       /* 6.26:1 on the deep teal */
+.kitchen .kbar__left > div { border-left-color: rgba(255,255,255,.22); }
+
+.kitchen .brand--kitchen { color: var(--c-teal-deep); }
+.kitchen .brand--kitchen .brand__word { color: #fff; }
+.kitchen .brand--kitchen .brand__edge { fill: rgba(255,255,255,.5); }
+
+/* ---- tabs ---- */
+
+.kitchen .kviews,
+.kitchen .kscope { background: rgba(255,255,255,.14); }
+
+.kitchen .kview,
+.kitchen .kscope__link { color: #e8f6f5; }
+.kitchen .kview:hover,
+.kitchen .kscope__link:hover { color: #fff; }
+
+/* The active tab goes dark, not teal — a teal pill on a teal page is
+   invisible. White on the dark is 16.6:1. */
+.kitchen .kview.is-on,
+.kitchen .kscope__link.is-on { background: var(--c-dark); color: #fff; }
+.kitchen .kview__n { background: rgba(255,255,255,.24); color: #fff; }
+
+/* ---- breadcrumbs, footer, empty state ---- */
+
+.kitchen .crumbs__link { color: #e8f6f5; }
+.kitchen .crumbs__link:hover { color: #fff; }
+.kitchen .crumbs__here { color: #fff; }
+.kitchen .crumbs__sep { color: rgba(255,255,255,.55); }
+
+.kitchen .kfoot { color: #e8f6f5; }
+.kitchen .kfoot a { color: #fff; }
+
+.kitchen .kempty {
+  background: rgba(0,0,0,.18);
+  border-color: rgba(255,255,255,.3);
+  color: #fff;
+}
+
+/* ---- buttons ---- */
+
 .kitchen .button {
-  background: rgba(255,255,255,.18);
-  border-color: rgba(255,255,255,.42);
+  background: var(--c-dark);
+  border-color: transparent;
   color: #fff;
 }
-.kitchen .button:hover {
-  background: rgba(255,255,255,.2);
-  color: #fff;
-}
+.kitchen .button:hover { background: #000; color: #fff; }
 
 .kitchen .button--ghost {
   background: transparent;
   color: #fff;
-  border-color: rgba(255,255,255,.42);
+  border-color: rgba(255,255,255,.55);
 }
-.kitchen .button--ghost:hover { background: rgba(255,255,255,.14); color: #fff; }
+.kitchen .button--ghost:hover { background: rgba(255,255,255,.16); color: #fff; }
 
-/* Danger keeps its own colour — it has to stand out from the rest. */
-.kitchen .button--danger {
-  background: #b4503c;
-  border-color: #b4503c;
+/* ---- the cards keep their dark ---- */
+
+.kitchen .bcard {
+  background: var(--c-dark);
+  border-color: rgba(255,255,255,.16);
+  box-shadow: var(--shadow);
+}
+
+.kitchen .kticket {
+  background-color: var(--c-dark);
+  background-image: linear-gradient(rgba(255,255,255,.06), rgba(255,255,255,.06));
+  border-color: rgba(255,255,255,.16);
+  box-shadow: var(--shadow);
+}
+.kitchen .kticket--completed,
+.kitchen .kticket--cancelled {
+  background-image: linear-gradient(rgba(255,255,255,.03), rgba(255,255,255,.03));
+  border-color: rgba(255,255,255,.12);
+}
+
+/* The bookings panel heading sits on the teal, not on a card. */
+.kitchen .bpanel { color: #e8f6f5; }
+.kitchen .bpanel__title { color: #fff; }
+/* The same brown the home page footer uses on teal. Warmer browns all
+   sit at teal's own luminance and vanish — --c-accent is 1.04:1. */
+.kitchen .bpanel__title-em { color: #150f0a; }
+.kitchen .bpanel__count { color: #e8f6f5; }
+.kitchen .bday { color: #fff; }
+.kitchen .bday__date { color: #e8f6f5; }
+/* Designed for the dark page; #bdae9c is 2.39:1 on the teal. */
+.kitchen .bpanel__empty { color: #fff; }
+
+/* ---- the name across the foot, as on the home page ---- */
+
+/* The name across the very foot of the page, edge to edge, in the same
+   brown and at the same weight the home page footer gives it. */
+.kitchen .kmark {
+  margin: clamp(var(--sp-10), 8vw, var(--sp-16)) 0 0;
+  padding: 0;
+  overflow: hidden;
+  line-height: .78;
+  text-align: center;
+}
+.kitchen .kmark .wordmark {
+  display: inline-flex;
+  color: #150f0a;                                /* 3.67:1 on the teal */
+  font-size: clamp(2.6rem, 13vw, 8.5rem);
+  letter-spacing: -.01em;
+}
+
+/* ---- roomier booking cards ---- */
+
+/* These carry a time, a name, a date, a table, a party and two buttons. At
+   17rem they were cramped; this gives each card more of the row. */
+.kitchen .bgrid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: clamp(var(--sp-5), 2.5vw, var(--sp-6));
+}
+.kitchen .bcard { padding: clamp(var(--sp-5), 2.8vw, var(--sp-7)); gap: var(--sp-4); }
+.kitchen .bcard__time { font-size: 2.6rem; }
+.kitchen .bcard__name { font-size: 1.3rem; }
+.kitchen .bcard__value { font-size: 1.5rem; }
+.kitchen .bcard__label { font-size: .82rem; }
+.kitchen .bcard__contact { font-size: 1rem; }
+
+/* The page itself should reach the bottom, so the name sits on the floor of
+   the screen rather than floating above it on a short board. */
+.kitchen { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* As a flex item, .kmain's margin-inline:auto soaked up every spare pixel and
+   shrank the board to the width of its content. Stretching it keeps the grid
+   full width, so cards fill the row from the left instead of huddling in the
+   middle. */
+.kitchen .kmain {
+  flex: 1 0 auto;
+  align-self: stretch;
+  width: 100%;
+  /* The page runs to the edge like the bookings view, rather than sitting in
+     a centred column. */
+  max-width: none;
+}
+
+/* The tickets keep the width they had — a ticket carries dishes, an address,
+   money and four buttons, and stretched across a wide screen it reads as a
+   long thin band. The board starts at the left edge; it just stops short of
+   the right one. */
+.kitchen .kboard { max-width: 68rem; }
+
+
+/* ---------- what left the board, on the history page ---------- */
+
+/* A deleted order has no row left anywhere, so this list is its only record.
+   It reads as a log: a rail down the left, one line per event, newest first. */
+.kitchen .kgone {
+  margin: 0 0 clamp(var(--sp-6), 3vw, var(--sp-8));
+  padding: clamp(var(--sp-5), 2.6vw, var(--sp-6));
+  background: var(--c-dark);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.kitchen .kgone__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-5);
+  margin: 0 0 var(--sp-5);
+}
+.kitchen .kgone__title {
+  margin: 0;
+  font-family: "Anton", var(--f-display);
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  letter-spacing: .02em;
+  text-transform: uppercase;
   color: #fff;
 }
-.kitchen .button--danger:hover { background: #9b422f; color: #fff; }
+.kitchen .kgone__title-em { color: var(--c-teal-lit); }
+.kitchen .kgone__sub { margin: 0; font-size: .9rem; color: #bdae9c; }
+
+.kitchen .kgone__list { margin: 0; padding: 0; list-style: none; }
+
+/* Each row hangs off a rail, with a dot where it meets. */
+.kitchen .kgone__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  align-items: baseline;
+  gap: .3rem var(--sp-4);
+  padding: var(--sp-3) 0 var(--sp-3) var(--sp-5);
+  border-left: 2px solid rgba(255,255,255,.18);
+}
+.kitchen .kgone__row + .kgone__row { border-top: 1px solid rgba(255,255,255,.1); }
+
+.kitchen .kgone__dot {
+  position: absolute;
+  left: -5px;
+  top: 1.15rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d9796c;                 /* cancelled */
+}
+.kitchen .kgone__row--gone .kgone__dot { background: #9a8f86; }
+
+.kitchen .kgone__ref {
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.kitchen .kgone__what { font-weight: 600; color: #f6d3cd; }
+.kitchen .kgone__row--gone .kgone__what { color: #d7cec6; }
+.kitchen .kgone__who  { color: #bdae9c; }
+.kitchen .kgone__when { color: #bdae9c; font-variant-numeric: tabular-nums; }
+
+/* Narrow: the reference leads, the rest wraps under it. */
+@media (max-width: 46rem) {
+  .kitchen .kgone__row { grid-template-columns: auto 1fr; }
+  .kitchen .kgone__when { grid-column: 1 / -1; }
+}
+
+
+/* ===========================================================================
+   MOBILE
+
+   Four things: the hamburger goes teal, the drawer becomes a full screen in
+   the same teal, the nav loses its pill in favour of the button radius, and
+   the kitchen bar stops overflowing.
+   =========================================================================== */
+
+/* ---- the landing navbar is no longer a pill ---- */
+
+/* Only the floating bar on the landing page. The rail on the inner pages
+   keeps its rounded right edge (0 28px 28px 0) — that is its shape, not a
+   button's. */
+@media (min-width: 961px) {
+  body.is-landing .sidebar__panel { border-radius: var(--radius-btn); }
+}
+
+@media (max-width: 960px) {
+
+  /* ---- the hamburger ---- */
+
+  .topbar__toggle {
+    width: 44px;
+    height: 44px;
+    padding: 0 10px;
+    background: var(--c-teal);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: var(--radius-btn);
+  }
+  .topbar__toggle span { background: #fff; }
+  .topbar__toggle[aria-expanded="true"] { background: var(--c-teal-deep); }
+
+  /* ---- the drawer fills the screen ---- */
+
+  .sidebar {
+    width: 100%;
+    max-width: none;
+    background: var(--c-teal);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Clear of the bar, and roomy rather than a cramped rail. */
+  .sidebar__inner {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: calc(var(--topbar-h) + var(--sp-6)) var(--sp-6) var(--sp-8);
+    gap: var(--sp-6);
+  }
+
+  .sidebar .brand { align-self: flex-start; margin: 0; }
+  .sidebar .brand__word { display: inline-flex; color: #fff; }
+
+  .sidebar__panel {
+    flex: 1 1 auto;
+    width: 100%;
+    gap: var(--sp-5);
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* The rail centres its icons; a full-screen menu wants full-width rows,
+     so the centring has to be undone explicitly. */
+  .nav__list {
+    display: grid;
+    justify-items: stretch;
+    gap: var(--sp-2);
+    width: 100%;
+  }
+
+  /* Full-width rows, big enough to hit without aiming. */
+  .nav__link {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    width: 100%;
+    min-height: 56px;
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--radius-btn);
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+  .nav__link .nav__text { display: inline; }      /* the rail hides this */
+  .nav__link .nav__icon { flex: none; }
+  .nav__link:hover,
+  .nav__link:focus-visible { background: rgba(255,255,255,.16); color: #fff; }
+  .nav__link.is-here { background: var(--c-dark); color: #fff; }
+
+  /* Phone and hours sit along the bottom, side by side. */
+  .sidebar__foot {
+    flex-direction: row;
+    gap: var(--sp-3);
+    margin-top: auto;
+    padding-top: var(--sp-6);
+    border-top: 1px solid rgba(255,255,255,.26);
+  }
+  .sidebar__dot {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-btn);
+    background: rgba(255,255,255,.14);
+    color: #fff;
+  }
+  .sidebar__dot:hover { background: #fff; color: var(--c-teal-deep); }
+
+  /* With the drawer covering everything, the dimmer behind it is pointless. */
+  .scrim { display: none; }
+
+  /* ---- the kitchen bar ---- */
+
+  /* Logo, tabs and the History button could not fit on one line and pushed
+     the page 105px wide. They wrap now. */
+  .kbar {
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+  }
+  .kbar__left,
+  .kbar__right { width: 100%; }
+  .kbar__right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+  .kviews, .kscope { flex: 1 1 auto; }
+  .kview, .kscope__link { flex: 1 1 auto; text-align: center; }
+  .ktally { width: 100%; justify-content: space-between; }
+
+  /* The only control under 44px on a phone — the password reveal. */
+  .af__reveal { min-height: 44px; padding-inline: var(--sp-3); }
+
+  /* Staff tap these on a tablet or a phone, so they get finger-sized
+     too — the compact desktop sizing is too small to hit reliably. */
+  .kitchen .button,
+  .kitchen .button--small,
+  .kitchen .kview,
+  .kitchen .kscope__link,
+  .kitchen .kbtn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+
+
+
+/* ---------- the Waiting / Cooking / Ready counts ---------- */
+
+/* No cards and no rules — just the three numbers on the bar. A dark card
+   cannot separate from this teal anyway (black only manages 2.80:1), so the
+   figures carry themselves: large, in the stage colour, read from across the
+   room. Each one clears 5:1 straight on the bar. */
+.kitchen .ktally {
+  display: flex;
+  gap: clamp(var(--sp-5), 3vw, var(--sp-7));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kitchen .ktally__item {
+  padding: 0;
+  min-width: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+}
+
+.kitchen .ktally__n {
+  display: block;
+  font-family: "Anton", var(--f-display);
+  font-size: 2.4rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+  color: currentColor;
+}
+.kitchen .ktally__k {
+  display: block;
+  margin-top: .15rem;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #d9efed;
+}
+
+/* One colour per stage, the same three the tickets use. */
+.kitchen .ktally__item--new     { color: #f6cf95; }
+.kitchen .ktally__item--cooking { color: #fbd9a3; }
+.kitchen .ktally__item--ready   { color: #a9e9e2; }
+
+/* A zero is not news, so it steps back and lets a real number lead. */
+.kitchen .ktally__item--zero { opacity: .55; }
+
+@media (max-width: 960px) {
+  .kitchen .ktally { gap: var(--sp-5); }
+  .kitchen .ktally__n { font-size: 2rem; }
+}
