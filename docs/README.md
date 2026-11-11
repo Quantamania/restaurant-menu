@@ -118,8 +118,7 @@ restaurant-menu/
 │
 ├── docs/                  ← these documents
 ├── vercel.json  .vercelignore  .gitignore
-└── favicon.svg  favicon.ico  icon-192.png  icon-512.png
-                            apple-touch-icon.png
+└── favicon.svg  favicon.ico  apple-touch-icon.png
 ```
 
 **One page, one file, and the filename is the URL.** `/menu.php` runs
@@ -157,8 +156,10 @@ meant to be opened as a URL — the pages `require` it.
   (`chicken-pilau.jpg`). `menu_items.image` stores just the filename.
 - **`database/`** — `schema.sql` creates the 13 tables, `seed.sql` fills in the
   menu and the dining room. Run in that order, on a fresh database.
-- **`tools/`** — `staff-password.php` hashes a kitchen password for
-  `config.php`. Command line only; it is not part of the website.
+- **`tools/`** — command-line helpers, not part of the website:
+  `staff-password.php` hashes a kitchen password for `config.php`,
+  `load-remote-db.php` loads the schema into a hosted database, and
+  `diagnose-remote.php` reports why a hosted database is refusing writes.
 - **`storage/`** and **`assets/`** — written output and original artwork. Both
   gitignored; neither is needed to run the site.
 

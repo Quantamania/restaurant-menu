@@ -93,11 +93,10 @@ require __DIR__ . '/includes/header.php';
 
                 <?php
                   // A photo if the kitchen has added one.
-                  $photo = trim((string) ($item['image'] ?? ''));
-                  $hasPhoto = $photo !== '' && is_file(__DIR__ . '/images/' . basename($photo));
+                  $photo = dish_photo($item['image'] ?? null);
                 ?>
-                <?php if ($hasPhoto): ?>
-                  <img class="plate__photo" src="images/<?= e(basename($photo)) ?>"
+                <?php if ($photo): ?>
+                  <img class="plate__photo" src="images/<?= e($photo) ?>"
                        alt="<?= e($item['image_alt'] ?: $item['name']) ?>" loading="lazy" width="104" height="104">
                 <?php else: ?>
                   <span class="plate__photo plate__photo--none" aria-hidden="true">

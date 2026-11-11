@@ -78,6 +78,19 @@ function getPDO(): PDO
 }
 
 
+/* The filename of a dish's photo, or null if there is not one on disk.
+ *
+ * Every page that shows a dish repeats this check: the column may be empty,
+ * and the file it names may have been deleted. basename() also keeps a
+ * tampered value from climbing out of the images folder. */
+function dish_photo(?string $image): ?string
+{
+    $file = basename(trim((string) $image));
+
+    return $file !== '' && is_file(__DIR__ . '/../images/' . $file) ? $file : null;
+}
+
+
 /* Makes text safe to print inside a page. */
 function e(?string $s): string
 {
