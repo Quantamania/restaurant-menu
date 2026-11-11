@@ -99,7 +99,7 @@ database is not reachable — check the password in `includes/config.php`.
 ```
 restaurant-menu/
 │
-├── index.php              ← the nine pages, at the top level
+├── index.php              ← the ten pages, at the top level
 ├── menu.php
 ├── order.php
 ├── pay.php
@@ -107,9 +107,11 @@ restaurant-menu/
 ├── reserve.php
 ├── account.php
 ├── kitchen.php
+├── history.php
 ├── payment-callback.php
 │
 ├── includes/              ← shared PHP. Never opened directly by a visitor.
+│     sections/<page>/     ← the parts each page is built from
 ├── css/style.css          ← every style on the site
 ├── js/script.js           ← optional extras; the site works without it
 ├── images/                ← the 12 dish photos

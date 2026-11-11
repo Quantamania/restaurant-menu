@@ -34,6 +34,7 @@ restaurant-menu/
 ├── payment-callback.php   where M-Pesa reports back
 │
 ├── includes/              shared PHP — never opened directly
+│     sections/<page>/     the parts each page is built from
 ├── css/style.css          every style on the site
 ├── js/script.js           optional extras
 ├── images/                the 12 dish photos
