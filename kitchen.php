@@ -42,14 +42,29 @@ $signedIn = staff_logged_in();
 
 /* ------------------------------------------------------- moving an order */
 
-if ($signedIn && in_array($_POST['action'] ?? null, ['move', 'paid', 'delete'], true)) {
+if ($signedIn && in_array($_POST['action'] ?? null,
+                          ['move', 'paid', 'delete', 'delete-booking'], true)) {
 
     if (!csrf_valid($_POST['csrf'] ?? null)) {
         $error = 'That form had expired. Nothing was changed — please try again.';
     } else {
         $reference = strtoupper(trim((string) ($_POST['reference'] ?? '')));
 
-        if ($_POST['action'] === 'delete') {
+        if ($_POST['action'] === 'delete-booking') {
+            /* Clearing a finished or cancelled booking off the board. The
+             * function refuses anything still to come. */
+            $result = delete_reservation((int) ($_POST['reservation_id'] ?? 0), 'kitchen');
+            $done   = $result['ok'] ? 'Booking removed.' : null;
+
+            if (!$result['ok']) {
+                $error = $result['error'];
+            } else {
+                header('Location: kitchen.php?view=bookings&bscope='
+                     . urlencode((string) ($_POST['bscope'] ?? 'upcoming'))
+                     . '&done=' . urlencode($done));
+                exit;
+            }
+        } elseif ($_POST['action'] === 'delete') {
             $result = delete_order($reference);
             $done   = $result['ok'] ? $reference . ' deleted.' : null;
         } elseif ($_POST['action'] === 'paid') {
@@ -96,11 +111,11 @@ if (isset($_GET['done']) && $done === null) {
 // Two views on one screen: the board, and the bookings.
 $view = ($_GET['view'] ?? '') === 'bookings' ? 'bookings' : 'orders';
 
-$scope  = in_array($_GET['scope'] ?? '', ['open', 'today', 'cancelled', 'all'], true)
+$scope  = in_array($_GET['scope'] ?? '', ['open', 'today'], true)
         ? $_GET['scope'] : 'open';
 
 // The bookings view has its own scopes.
-$bScope = in_array($_GET['bscope'] ?? '', ['upcoming', 'today', 'all'], true)
+$bScope = in_array($_GET['bscope'] ?? '', ['upcoming', 'today'], true)
         ? $_GET['bscope'] : 'upcoming';
 
 // Deleting is irreversible, so it takes two deliberate presses.
@@ -285,15 +300,20 @@ $now = new DateTimeImmutable();
            if ($bookingsDue > 0): ?><span class="kview__n"><?= $bookingsDue ?></span><?php endif; ?></a>
       </nav>
 
+      <?php /* Finished and cancelled work is not on this board — it is one
+             * click away, so the board only ever shows what still needs doing. */ ?>
+      <a class="button button--small button--ghost"
+         href="history.php<?= $view === 'bookings' ? '?view=bookings' : '' ?>">History</a>
+
       <nav class="kscope" aria-label="How much to show">
         <?php if ($view === 'bookings'): ?>
-          <?php foreach (['upcoming' => 'Upcoming', 'today' => 'Today', 'all' => 'All'] as $key => $label): ?>
+          <?php foreach (['upcoming' => 'Upcoming', 'today' => 'Today'] as $key => $label): ?>
             <a class="kscope__link<?= $bScope === $key ? ' is-on' : '' ?>"
                href="kitchen.php?view=bookings&amp;bscope=<?= $key ?>"
                <?= $bScope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
           <?php endforeach; ?>
         <?php else: ?>
-          <?php foreach (['open' => 'Open', 'today' => 'Today', 'cancelled' => 'Cancelled', 'all' => 'Recent'] as $key => $label): ?>
+          <?php foreach (['open' => 'Open', 'today' => 'Today'] as $key => $label): ?>
             <a class="kscope__link<?= $scope === $key ? ' is-on' : '' ?>"
                href="kitchen.php?scope=<?= $key ?>"
                <?= $scope === $key ? 'aria-current="true"' : '' ?>><?= $label ?></a>
@@ -443,6 +463,39 @@ $now = new DateTimeImmutable();
                 <span class="bcard__chip bcard__chip--past">Passed</span>
               <?php elseif ($soon): ?>
                 <span class="bcard__chip bcard__chip--soon">in <?= $minsAway ?> min</span>
+              <?php endif; ?>
+              <?php if ($b['status'] === 'cancelled'): ?>
+                <span class="bcard__chip bcard__chip--off">Cancelled</span>
+              <?php endif; ?>
+
+              <?php /* Clearing the board. Two presses: the question is asked on
+                     * the card itself, naming the table and the day. */ ?>
+              <?php if ((int) ($_GET['bconfirm'] ?? 0) === (int) $b['id']): ?>
+                <div class="bcard__confirm">
+                  <p>
+                    Remove <strong><?= e($b['table_label'] ?? '—') ?></strong>
+                    on <strong><?= e($when ? $when->format('D j M') : '—') ?></strong>?
+                    <?php if (!$isPast && $b['status'] !== 'cancelled'): ?>
+                      The table goes back on sale.
+                    <?php endif; ?>
+                  </p>
+                  <div class="bcard__confirm-acts">
+                    <form method="post" action="kitchen.php">
+                      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                      <input type="hidden" name="reservation_id" value="<?= (int) $b['id'] ?>">
+                      <input type="hidden" name="bscope" value="<?= e($bScope) ?>">
+                      <button class="button button--small button--danger" type="submit"
+                              name="action" value="delete-booking">Yes, remove</button>
+                    </form>
+                    <a class="button button--small button--ghost"
+                       href="kitchen.php?view=bookings&amp;bscope=<?= e($bScope) ?>">Keep</a>
+                  </div>
+                </div>
+              <?php else: ?>
+                <p class="bcard__clear">
+                  <a class="button button--small button--danger"
+                     href="kitchen.php?view=bookings&amp;bscope=<?= e($bScope) ?>&amp;bconfirm=<?= (int) $b['id'] ?>">Remove</a>
+                </p>
               <?php endif; ?>
             </li>
 
@@ -612,7 +665,10 @@ $now = new DateTimeImmutable();
                 </form>
               <?php endif; ?>
 
-              <?php if ($order['status'] === 'cancelled'): ?>
+              <?php /* Clearing the board: a finished order as well as a
+                     * cancelled one. delete_order() still refuses a live one,
+                     * and a cancelled order that was paid. */ ?>
+              <?php if (in_array($order['status'], ['completed', 'cancelled'], true)): ?>
                 <?php if ($confirmDelete === $order['reference']): ?>
 
                   <!-- Second press. The question is asked in the row itself,

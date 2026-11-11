@@ -24,11 +24,25 @@ function ask(string $label): string
 
 /* The password is read with the terminal's echo switched off, so it never
  * appears on screen, in your shell history, or in `ps`. */
+/* Strips what a terminal can wrap around a paste.
+ *
+ * Bracketed paste mode sends ESC[200~ before the text and ESC[201~ after it,
+ * and arrow keys leave ESC[D and friends. With echo switched off none of that
+ * is visible, so a password looks right and is silently wrong. */
+function clean_secret(string $raw): string
+{
+    $raw = preg_replace('/\x1b\[\d*~/', '', $raw);      // bracketed paste markers
+    $raw = preg_replace('/\x1b\[[0-9;]*[A-Za-z]/', '', $raw);  // cursor keys
+    $raw = preg_replace('/[\x00-\x1f\x7f]/', '', $raw);  // any other control char
+
+    return trim($raw);
+}
+
 function ask_secret(string $label): string
 {
     fwrite(STDOUT, str_pad($label, 36) . ': ');
     @shell_exec('stty -echo 2>/dev/null');
-    $value = trim((string) fgets(STDIN));
+    $value = clean_secret((string) fgets(STDIN));
     @shell_exec('stty echo 2>/dev/null');
     fwrite(STDOUT, "\n");
 

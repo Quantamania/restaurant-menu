@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS restaurant_tables (
 
 CREATE TABLE IF NOT EXISTS reservations (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  -- Set when the booking was made by a signed-in customer, so they can see
+  -- and manage it later. Guests are remembered in the session instead.
+  user_id INT NULL,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(150) NOT NULL,
   phone VARCHAR(30) NULL,
@@ -57,9 +60,13 @@ CREATE TABLE IF NOT EXISTS reservations (
   table_id INT NULL,
   party_size INT NULL,
   message TEXT NULL,
+  -- Cancelling keeps the row but clears table_id, which frees the slot: the
+  -- unique key below ignores NULLs, so someone else can book that table.
+  status ENUM('booked','cancelled') NOT NULL DEFAULT 'booked',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL,
+  FOREIGN KEY (user_id)  REFERENCES users(id) ON DELETE SET NULL,
 
   -- The database itself refuses to book the same table twice in one slot.
   -- Two people clicking at the same moment cannot both win: the second

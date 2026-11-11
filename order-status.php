@@ -114,27 +114,45 @@ try {
      * the row is the only record of the money — and it is logged first.
      * Guarded on $order, not $found, so it inherits the ownership check
      * may_view_order() already made. */
-    if ($order && ($_POST['action'] ?? null) === 'delete-order') {
+    if (($_POST['action'] ?? null) === 'delete-order') {
         if (!csrf_valid($_POST['csrf'] ?? null)) {
             $error = 'Your session expired. Please try again.';
         } else {
-            $gone   = $order['reference'];
-            $result = delete_order($gone, 'customer');
+            /* The single-order view has $order already. The my-orders list has
+             * no ?ref=, so the order is looked up from the posted reference and
+             * checked with may_view_order() — the same gate either way. */
+            $target = $order;
 
-            if ($result['ok']) {
-                // Drop it from the guest list too, or it lingers as a dead link.
-                if (!empty($_SESSION['my_orders'])) {
-                    $_SESSION['my_orders'] = array_values(
-                        array_diff($_SESSION['my_orders'], [$gone])
-                    );
+            if ($target === null) {
+                $posted = strtoupper(trim((string) ($_POST['reference'] ?? '')));
+                $maybe  = $posted !== '' ? getOrderByReference($posted) : null;
+
+                if ($maybe && may_view_order($maybe)) {
+                    $target = $maybe;
                 }
-
-                /* ?ref= would only 404 now, so go back to the list. */
-                header('Location: order-status.php?deleted=' . urlencode($gone));
-                exit;
             }
 
-            $error = $result['error'];
+            if ($target === null) {
+                $error = 'We cannot find that order.';
+            } else {
+                $gone   = $target['reference'];
+                $result = delete_order($gone, 'customer');
+
+                if ($result['ok']) {
+                    // Drop it from the guest list too, or it lingers as a dead link.
+                    if (!empty($_SESSION['my_orders'])) {
+                        $_SESSION['my_orders'] = array_values(
+                            array_diff($_SESSION['my_orders'], [$gone])
+                        );
+                    }
+
+                    /* ?ref= would only 404 now, so go back to the list. */
+                    header('Location: order-status.php?deleted=' . urlencode($gone));
+                    exit;
+                }
+
+                $error = $result['error'];
+            }
         }
     }
 
@@ -672,6 +690,31 @@ require __DIR__ . '/includes/header.php';
                        href="order-status.php?ref=<?= urlencode($row['reference']) ?>">
                       <?= $live ? 'Track this order' : 'See the full order' ?>
                     </a>
+
+                    <?php /* Clearing your own history. Only an order that is finished
+                           * with, and never one paid then cancelled — that still owes
+                           * you a refund, and the row is the record of it. */ ?>
+                    <?php
+                      $rowDone    = in_array($row['status'], ['completed', 'cancelled'], true);
+                      $owesRefund = $row['status'] === 'cancelled' && $rowPaid;
+                    ?>
+                    <?php if ($rowDone && !$owesRefund): ?>
+                      <?php if (($_GET['remove'] ?? '') === $row['reference']): ?>
+                        <span class="myorder__sure">
+                          Delete <strong><?= e($row['reference']) ?></strong> for good?
+                          <form method="post" action="order-status.php">
+                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="reference" value="<?= e($row['reference']) ?>">
+                            <button class="button button--small button--danger" type="submit"
+                                    name="action" value="delete-order">Yes, delete</button>
+                          </form>
+                          <a class="button button--small button--ghost" href="order-status.php">Keep it</a>
+                        </span>
+                      <?php else: ?>
+                        <a class="button button--small button--danger"
+                           href="order-status.php?remove=<?= urlencode($row['reference']) ?>">Delete</a>
+                      <?php endif; ?>
+                    <?php endif; ?>
                   </div>
                 </div>
               </details>

@@ -22,6 +22,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+/* ---------------------------------- managing your own booking */
+
+/* Both actions are guarded by may_view_reservation(), so a booking id typed
+ * into the address bar is not enough — it has to be yours. */
+if (in_array($action, ['cancel-booking', 'delete-booking'], true)) {
+    if (!csrf_valid($_POST['csrf'] ?? null)) {
+        $errors['form'] = 'That form had expired. Nothing was changed — please try again.';
+    } else {
+        $bookingId = (int) ($_POST['reservation_id'] ?? 0);
+        $booking   = $bookingId > 0 ? get_reservation($bookingId) : null;
+
+        if (!$booking || !may_view_reservation($booking)) {
+            $errors['form'] = 'We cannot find that booking.';
+        } else {
+            $result = $action === 'cancel-booking'
+                ? cancel_reservation($bookingId, 'customer')
+                : delete_reservation($bookingId, 'customer');
+
+            if ($result['ok']) {
+                if ($action === 'delete-booking') {
+                    // Drop it from the guest list too, or it lingers as a dead id.
+                    $_SESSION['my_bookings'] = array_values(array_diff(
+                        array_map('intval', $_SESSION['my_bookings'] ?? []), [$bookingId]
+                    ));
+                }
+
+                $_SESSION['flash'] = $action === 'cancel-booking'
+                    ? 'Your booking is cancelled, and the table is free again.'
+                    : 'That booking has been deleted.';
+
+                header('Location: reserve.php');
+                exit;
+            }
+
+            $errors['form'] = $result['error'];
+        }
+    }
+}
+
+
 // A slot we do not recognise falls back to the first one.
 if (!isset($site['slots'][$old['reservation_time']])) {
     $old['reservation_time'] = array_key_first($site['slots']);
@@ -101,10 +141,14 @@ if ($action === 'book' && !isset($errors['form'])) {
         try {
             $stmt = $pdo->prepare(
                 'INSERT INTO reservations
-                   (name, email, phone, reservation_date, reservation_time, table_id, party_size, message)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+                   (user_id, name, email, phone, reservation_date, reservation_time,
+                    table_id, party_size, message)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
+            $me = current_user();
+
             $stmt->execute([
+                $me['id'] ?? null,
                 $old['name'],
                 $old['email'],
                 $old['phone'] !== '' ? $old['phone'] : null,
@@ -114,6 +158,10 @@ if ($action === 'book' && !isset($errors['form'])) {
                 $size,
                 $old['message'] !== '' ? $old['message'] : null,
             ]);
+
+            /* Remembered in the session as well as against the account, so a
+             * guest who booked without signing in can still see and cancel it. */
+            $_SESSION['my_bookings'][] = (int) getPDO()->lastInsertId();
 
             $when = date('j M Y', strtotime($old['reservation_date']));
             $slot = $site['slots'][$old['reservation_time']];
@@ -138,6 +186,14 @@ if ($action === 'book' && !isset($errors['form'])) {
 // The success message set just before the redirect above, shown once.
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
+
+// Bookings this visitor may manage: their account's, plus this session's.
+$myBookings = [];
+try {
+    $myBookings = reservations_for_viewer();
+} catch (Throwable $ex) {
+    error_log('reservations_for_viewer: ' . $ex->getMessage());
+}
 
 // Small shortcut: adds the red-outline class to a field that has an error.
 $bad = static fn(string $field): string => !empty($errors[$field]) ? ' field--bad' : '';
@@ -184,7 +240,111 @@ require __DIR__ . '/includes/header.php';
       </p>
     <?php endif; ?>
 
-    <form method="post" action="reserve.php" class="reservation-form" novalidate>
+    <?php /* Your own bookings, with the two things you might want to do to
+           * one: free the table but keep the record, or remove it entirely. */ ?>
+    <?php if ($myBookings): ?>
+      <?php
+        // Only the ones still ahead count as "you have a table reserved".
+        $upcoming = array_filter($myBookings, fn ($b) =>
+            $b['status'] === 'booked'
+            && strtotime($b['reservation_date'] . ' ' . $b['reservation_time']) >= time());
+      ?>
+      <?php /* The same card the kitchen uses for a booking: a dark panel, the
+             * time in Anton, and a Table / Party split with a rule between. */ ?>
+      <section class="bpanel bpanel--mine" aria-label="Your bookings">
+        <header class="bpanel__head">
+          <h2 class="bpanel__title">
+            Your <span class="bpanel__title-em">table</span>
+          </h2>
+          <p class="bpanel__count">
+            <?php if ($upcoming): ?>
+              <?= count($upcoming) ?> reserved &middot;
+            <?php endif; ?>
+            <?= count($myBookings) ?> shown
+          </p>
+        </header>
+
+        <ul class="bgrid">
+          <?php foreach ($myBookings as $b): ?>
+            <?php
+              $when      = strtotime($b['reservation_date'] . ' ' . $b['reservation_time']);
+              $cancelled = $b['status'] === 'cancelled';
+              $past      = $when < time();
+              $seats     = (int) ($b['table_seats'] ?? 0);
+            ?>
+            <li class="bcard<?= $cancelled ? ' bcard--off' : ($past ? ' bcard--past' : '') ?>">
+              <p class="bcard__time">
+                <?= e(date('g:i', $when)) ?><span><?= e(date('a', $when)) ?></span>
+              </p>
+
+              <p class="bcard__name"><?= e(date('D j M Y', $when)) ?></p>
+
+              <div class="bcard__span">
+                <span class="bcard__slot">
+                  <span class="bcard__label">Table</span>
+                  <span class="bcard__value"><?= e($b['table_label'] ?? '—') ?></span>
+                  <?php if (!empty($b['table_area'])): ?>
+                    <span class="bcard__sub"><?= e($b['table_area']) ?></span>
+                  <?php endif; ?>
+                </span>
+                <span class="bcard__dash" aria-hidden="true"></span>
+                <span class="bcard__slot">
+                  <span class="bcard__label">Party</span>
+                  <span class="bcard__value"><?= (int) $b['party_size'] ?: '—' ?></span>
+                  <?php if ($seats > 0): ?>
+                    <span class="bcard__sub">of <?= $seats ?> seats</span>
+                  <?php endif; ?>
+                </span>
+              </div>
+
+              <p class="bcard__contact"><?= e($b['name']) ?></p>
+
+              <?php if ($cancelled): ?>
+                <span class="bcard__chip bcard__chip--off">Cancelled</span>
+              <?php elseif ($past): ?>
+                <span class="bcard__chip bcard__chip--past">Passed</span>
+              <?php endif; ?>
+
+              <?php if ((int) ($_GET['remove'] ?? 0) === (int) $b['id']): ?>
+                <div class="bcard__confirm">
+                  <p>Delete this booking?<?= !$cancelled && !$past ? ' The table goes back on sale.' : '' ?></p>
+                  <div class="bcard__confirm-acts">
+                    <form method="post" action="reserve.php">
+                      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                      <input type="hidden" name="reservation_id" value="<?= (int) $b['id'] ?>">
+                      <button class="button button--small button--danger" type="submit"
+                              name="action" value="delete-booking">Yes, delete</button>
+                    </form>
+                    <a class="button button--small button--ghost" href="reserve.php">Keep it</a>
+                  </div>
+                </div>
+              <?php else: ?>
+                <div class="bcard__acts">
+                  <?php if (!$cancelled && !$past): ?>
+                    <form method="post" action="reserve.php">
+                      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                      <input type="hidden" name="reservation_id" value="<?= (int) $b['id'] ?>">
+                      <button class="button button--small button--ghost" type="submit"
+                              name="action" value="cancel-booking">Cancel</button>
+                    </form>
+                  <?php endif; ?>
+                  <a class="button button--small button--danger"
+                     href="reserve.php?remove=<?= (int) $b['id'] ?>">Delete</a>
+                </div>
+              <?php endif; ?>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+
+        <p class="bpanel__more">
+          <a class="button button--small" href="#book">
+            <?= $upcoming ? 'Book another table' : 'Book a table' ?>
+          </a>
+        </p>
+      </section>
+    <?php endif; ?>
+
+    <form id="book" method="post" action="reserve.php" class="reservation-form" novalidate>
 
       <!-- Proves the form came from our page. Never remove this. -->
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

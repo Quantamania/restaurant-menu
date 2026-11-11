@@ -16,9 +16,23 @@ $port = $args[1] ?? trim((string) readline('Port     : '));
 $user = $args[2] ?? trim((string) readline('User     : '));
 $name = $args[3] ?? trim((string) readline('Database : '));
 
+/* Strips what a terminal can wrap around a paste.
+ *
+ * Bracketed paste mode sends ESC[200~ before the text and ESC[201~ after it,
+ * and arrow keys leave ESC[D and friends. With echo switched off none of that
+ * is visible, so a password looks right and is silently wrong. */
+function clean_secret(string $raw): string
+{
+    $raw = preg_replace('/\x1b\[\d*~/', '', $raw);      // bracketed paste markers
+    $raw = preg_replace('/\x1b\[[0-9;]*[A-Za-z]/', '', $raw);  // cursor keys
+    $raw = preg_replace('/[\x00-\x1f\x7f]/', '', $raw);  // any other control char
+
+    return trim($raw);
+}
+
 fwrite(STDOUT, str_pad('Password', 9) . ': ');
 @shell_exec('stty -echo 2>/dev/null');
-$pass = trim((string) fgets(STDIN));
+$pass = clean_secret((string) fgets(STDIN));
 @shell_exec('stty echo 2>/dev/null');
 fwrite(STDOUT, "\n\n");
 

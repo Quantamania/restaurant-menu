@@ -174,6 +174,8 @@ function kitchen_orders(string $scope = 'open'): array
     $sql .= match ($scope) {
         'today'     => 'WHERE o.order_date = CURDATE() ',
         'cancelled' => "WHERE o.status = 'cancelled' ",
+        // Done with: collected or called off. These live on history.php.
+        'past'      => "WHERE o.status IN ('completed', 'cancelled') ",
         'all'       => '',
         default     => "WHERE o.status IN ('new','preparing','ready') ",
     };
@@ -231,11 +233,13 @@ function delete_order(string $reference, string $actor = 'kitchen'): array
             return ['ok' => true, 'error' => null];
         }
 
-        if ($order['status'] !== 'cancelled') {
+        /* Only an order that is finished with. A live one is still being
+         * cooked or collected, and deleting it would lose work in progress. */
+        if (!in_array($order['status'], ['completed', 'cancelled'], true)) {
             $pdo->rollBack();
 
             return ['ok' => false, 'error' => sprintf(
-                'Only a cancelled order can be deleted. %s is %s — cancel it first.',
+                '%s is %s. Only a finished or cancelled order can be deleted.',
                 $reference, $order['status']
             )];
         }
@@ -246,11 +250,15 @@ function delete_order(string $reference, string $actor = 'kitchen'): array
         );
         $paid->execute([$order['id']]);
 
-        if ($order['payment_status'] === 'paid' || (int) $paid->fetchColumn() > 0) {
+        /* A CANCELLED order that was paid still owes the customer a refund,
+         * and this row is the only record of the money — so it stays. A
+         * COMPLETED paid order is a finished sale and may be cleared. */
+        if ($order['status'] === 'cancelled'
+            && ($order['payment_status'] === 'paid' || (int) $paid->fetchColumn() > 0)) {
             $pdo->rollBack();
 
             return ['ok' => false, 'error' => sprintf(
-                '%s was paid, so it cannot be deleted — that would destroy the only record of the money. Refund it first and keep the order.',
+                '%s was cancelled after it was paid, so it cannot be deleted — that would destroy the only record of the money. Refund it and keep the order.',
                 $reference
             )];
         }
@@ -296,10 +304,15 @@ function kitchen_reservations(string $scope = 'upcoming'): array
               LEFT JOIN restaurant_tables t ON t.id = r.table_id ';
 
     $sql .= match ($scope) {
-        'today' => 'WHERE r.reservation_date = CURDATE() ORDER BY r.reservation_time ASC ',
-        'all'   => 'ORDER BY r.id DESC ',
-        default => 'WHERE r.reservation_date >= CURDATE()
-                    ORDER BY r.reservation_date ASC, r.reservation_time ASC ',
+        'today'     => 'WHERE r.reservation_date = CURDATE() ORDER BY r.reservation_time ASC ',
+        'cancelled' => "WHERE r.status = 'cancelled' ORDER BY r.id DESC ",
+        // Been and gone, or called off.
+        'past'      => "WHERE (r.reservation_date < CURDATE() OR r.status = 'cancelled')
+                        ORDER BY r.reservation_date DESC, r.reservation_time DESC ",
+        'all'       => 'ORDER BY r.id DESC ',
+        // A cancelled booking is not upcoming — its table is free again.
+        default     => "WHERE r.reservation_date >= CURDATE() AND r.status = 'booked'
+                        ORDER BY r.reservation_date ASC, r.reservation_time ASC ",
     };
 
     return getPDO()->query($sql . 'LIMIT 60')->fetchAll();
@@ -311,7 +324,8 @@ function upcoming_reservation_count(): int
 {
     try {
         return (int) getPDO()->query(
-            'SELECT COUNT(*) FROM reservations WHERE reservation_date >= CURDATE()'
+            "SELECT COUNT(*) FROM reservations
+              WHERE reservation_date >= CURDATE() AND status = 'booked'"
         )->fetchColumn();
     } catch (Throwable $ex) {
         error_log('upcoming_reservation_count: ' . $ex->getMessage());
@@ -348,4 +362,151 @@ function kitchen_recent_exits(int $minutes = 180): array
     $stmt->execute([$cutoff]);
 
     return $stmt->fetchAll();
+}
+
+
+/* RESERVATIONS — the same three moves an order has: look, cancel, delete. */
+
+
+/* One booking, with the table it is on. */
+function get_reservation(int $id): ?array
+{
+    $stmt = getPDO()->prepare(
+        'SELECT r.*, t.label AS table_label, t.seats AS table_seats, t.area AS table_area
+           FROM reservations r
+           LEFT JOIN restaurant_tables t ON t.id = r.table_id
+          WHERE r.id = ?'
+    );
+    $stmt->execute([$id]);
+
+    return $stmt->fetch() ?: null;
+}
+
+
+/* Every booking this visitor may see: their account's, plus any made as a
+ * guest in this session. Newest first. */
+function reservations_for_viewer(): array
+{
+    $user = current_user();
+    $mine = array_values(array_filter(array_map('intval', $_SESSION['my_bookings'] ?? [])));
+
+    $where = [];
+    $args  = [];
+
+    if ($user !== null) {
+        $where[] = 'r.user_id = ?';
+        $args[]  = (int) $user['id'];
+    }
+    if ($mine) {
+        $where[] = 'r.id IN (' . implode(',', array_fill(0, count($mine), '?')) . ')';
+        $args    = array_merge($args, $mine);
+    }
+
+    if (!$where) {
+        return [];
+    }
+
+    $stmt = getPDO()->prepare(
+        'SELECT r.*, t.label AS table_label, t.seats AS table_seats, t.area AS table_area
+           FROM reservations r
+           LEFT JOIN restaurant_tables t ON t.id = r.table_id
+          WHERE ' . implode(' OR ', $where) . '
+          ORDER BY r.reservation_date DESC, r.reservation_time DESC'
+    );
+    $stmt->execute($args);
+
+    return $stmt->fetchAll();
+}
+
+
+/* Does this booking belong to whoever is asking? */
+function may_view_reservation(array $reservation): bool
+{
+    $user = current_user();
+
+    if ($user !== null && (int) ($reservation['user_id'] ?? 0) === (int) $user['id']) {
+        return true;
+    }
+
+    return in_array((int) $reservation['id'],
+                    array_map('intval', $_SESSION['my_bookings'] ?? []), true);
+}
+
+
+/* Cancels a booking: the record stays, the table is freed.
+ *
+ * table_id goes NULL, and the unique key ignores NULLs, so the slot is
+ * immediately bookable by somebody else. */
+function cancel_reservation(int $id, string $actor = 'customer'): array
+{
+    $pdo = getPDO();
+
+    try {
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare('SELECT * FROM reservations WHERE id = ? FOR UPDATE');
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            $pdo->rollBack();
+
+            return ['ok' => false, 'error' => 'That booking no longer exists.'];
+        }
+
+        if ($row['status'] === 'cancelled') {
+            $pdo->rollBack();
+
+            // Two taps on a slow connection, not an error.
+            return ['ok' => true, 'error' => null];
+        }
+
+        $pdo->prepare("UPDATE reservations SET status = 'cancelled', table_id = NULL WHERE id = ?")
+            ->execute([$id]);
+
+        $pdo->commit();
+
+        error_log(sprintf('RESERVATION CANCELLED by %s: #%d (%s, %s %s)',
+            $actor, $id, $row['name'], $row['reservation_date'], $row['reservation_time']));
+
+    } catch (Throwable $ex) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        error_log('cancel_reservation: ' . $ex->getMessage());
+
+        return ['ok' => false, 'error' => 'That did not cancel. Please try again.'];
+    }
+
+    return ['ok' => true, 'error' => null];
+}
+
+
+/* Removes a booking for good. Only one that is cancelled, or already past. */
+function delete_reservation(int $id, string $actor = 'kitchen'): array
+{
+    $pdo = getPDO();
+
+    try {
+        $row = get_reservation($id);
+
+        if (!$row) {
+            return ['ok' => true, 'error' => null];   // already gone
+        }
+
+        $when = $row['reservation_date'] . ' ' . $row['reservation_time'];
+
+        /* Any booking may be deleted, including one still to come — removing
+         * the row frees its table by itself, because the unique key goes with
+         * it. The confirm step lives in the page, not here. */
+        error_log(sprintf('RESERVATION DELETED by %s: #%d (%s, %s, table %s, party of %s)',
+            $actor, $id, $row['name'], $when, $row['table_label'] ?? '-', $row['party_size'] ?? '-'));
+
+        $pdo->prepare('DELETE FROM reservations WHERE id = ?')->execute([$id]);
+
+    } catch (Throwable $ex) {
+        error_log('delete_reservation: ' . $ex->getMessage());
+
+        return ['ok' => false, 'error' => 'That did not delete. Please try again.'];
+    }
+
+    return ['ok' => true, 'error' => null];
 }
